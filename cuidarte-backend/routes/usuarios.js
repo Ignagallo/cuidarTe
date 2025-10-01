@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// 🔐 LOGIN de usuario
+// LOGIN de usuario
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -64,7 +64,8 @@ router.post('/login', async (req, res) => {
       usuario: {
         id: usuario._id,
         nombre: usuario.nombre,
-        email: usuario.email
+        email: usuario.email,
+        rol: usuario.rol
       }
     });
 

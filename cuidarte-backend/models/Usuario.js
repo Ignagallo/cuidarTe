@@ -1,17 +1,17 @@
 // models/Usuario.js
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');           // hasheo del password
+const bcrypt = require('bcryptjs');          // hasheo del password
 
 const usuarioSchema = new mongoose.Schema({
   nombre: { type: String, required: true},
   email: { type: String, required: true, unique: true},
   password: { type: String, required: true},
-  rol: { type: String, enum: ['admin', 'profesional', 'cliente'], default: 'admin'},
+  rol: { type: String, enum: ['admin', 'profesional', 'cliente'], default: 'cliente'},
   activo: { type: Boolean, default: true},
   creadoEn: { type: Date, default: Date.now}
 });
 
-// 🔐 Hashear la contraseña antes de guardar
+// Hashear la contraseña antes de guardar
 usuarioSchema.pre('save', async function (next) {
   try {
     if (!this.isModified('password')) return next(); // Si no se modificó, no volver a hashear
