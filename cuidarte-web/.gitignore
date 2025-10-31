@@ -1,5 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .env
+.env.local
 node_modules/
 
 # dependencies
@@ -21,6 +22,7 @@ node_modules/
 
 # production
 /build
+/public
 
 # misc
 .DS_Store
@@ -41,3 +43,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+eslint.config.msj
+jsconfig.json
+next.config.mjs
+package-lock.json
+package.json
+postcss.config.mjs
+README.md
