@@ -59,6 +59,17 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
 
+    // Generar token o sesión
+    const jwt = `${usuario._id}-${Date.now()}`;
+
+    // Setear cookie segura para cross-site
+    res.cookie('token', jwt, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 1000 * 60 * 60 * 24 * 7
+    });
+
     res.json({
       mensaje: 'Login correcto',
       usuario: {
