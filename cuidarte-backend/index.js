@@ -6,9 +6,41 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Middlewares
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+// Lee orígenes permitidos desde ENV (coma-separados) o usa defaults
+const ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:3000,https://cuidarte-nine.vercel.app')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+// Helper para CORS dinámico
+const corsOptions = {
+  origin: (origin, cb) => {
+    // Permite requests de herramientas sin origin (curl / Postman) y los que estén en la lista
+    if (!origin || ORIGINS.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS bloqueado para origin: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+};
+
+app.use(cors(corsOptions));
+
+// Middleware extra para que el preflight siempre pase y no quede cacheado con otro Origin
+app.use((req, res, next) => {
+  const origin = ORIGINS.includes(req.headers.origin) ? req.headers.origin : ORIGINS[0];
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Vary', 'Origin');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 app.use(express.json());
 app.use(cookieParser());
 
