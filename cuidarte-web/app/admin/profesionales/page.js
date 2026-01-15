@@ -129,8 +129,10 @@ function ProfesionalFormModal({ open, onClose, onSaved, initialData }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
-      <div className="bg-white w-[95vw] max-w-2xl p-6 rounded-2xl shadow-2xl">
-        <div className="flex items-center justify-between">
+      {/* CONTENEDOR DEL MODAL */}
+      <div className="bg-white w-[95vw] max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        {/* HEADER (NO SCROLL) */}
+        <div className="flex items-center justify-between gap-4 p-6 border-b">
           <h3 className="text-lg font-semibold text-[#1D4A74]">
             {editMode ? "Editar profesional" : "Nuevo profesional"}
           </h3>
@@ -141,133 +143,139 @@ function ProfesionalFormModal({ open, onClose, onSaved, initialData }) {
             ✕
           </button>
         </div>
+        <div className="p-6 overflow-y-auto">
+          <form
+            id="profForm"
+            onSubmit={onSubmit}
+            className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-[#1D4A74]"
+          >
+            <div className="md:col-span-2">
+              <label className="block text-sm text-[#1D4A74] mb-1">
+                Foto del profesional
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  try {
+                    await uploadFoto(e.target.files?.[0]);
+                  } catch (err) {
+                    setErr(err.message);
+                  }
+                }}
+                className="w-full border rounded px-3 py-2"
+                disabled={uploading}
+              />
+              {uploading && (
+                <p className="text-xs text-gray-500 mt-1">Subiendo imagen…</p>
+              )}
 
-        <form
-          onSubmit={onSubmit}
-          className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-[#1D4A74]"
-        >
-          <div className="md:col-span-2">
-            <label className="block text-sm text-[#1D4A74] mb-1">
-              Foto del profesional
-            </label>
+              {form.fotoUrl && (
+                <div className="mt-2 flex items-center gap-3">
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_API_BASE || ""}${
+                      form.fotoUrl
+                    }`}
+                    alt="Preview"
+                    className="h-20 w-20 rounded-xl object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((prev) => ({ ...prev, fotoUrl: "" }))
+                    }
+                    className="text-sm border rounded px-2 py-1"
+                  >
+                    Quitar foto
+                  </button>
+                </div>
+              )}
+            </div>
+
             <input
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                try {
-                  await uploadFoto(e.target.files?.[0]);
-                } catch (err) {
-                  setErr(err.message);
-                }
-              }}
-              className="w-full border rounded px-3 py-2"
-              disabled={uploading}
+              className="border rounded px-3 py-2"
+              placeholder="Nombre y Apellido"
+              value={form.nombreApellido}
+              onChange={(e) =>
+                setForm({ ...form, nombreApellido: e.target.value })
+              }
+              required
             />
-            {uploading && (
-              <p className="text-xs text-gray-500 mt-1">Subiendo imagen…</p>
-            )}
+            <input
+              className="border rounded px-3 py-2"
+              placeholder="Profesión"
+              value={form.profesion}
+              onChange={(e) => setForm({ ...form, profesion: e.target.value })}
+              required
+            />
 
-            {form.fotoUrl && (
-              <div className="mt-2 flex items-center gap-3">
-                <img
-                  src={`${process.env.NEXT_PUBLIC_API_BASE || ""}${
-                    form.fotoUrl
-                  }`}
-                  alt="Preview"
-                  className="h-20 w-20 rounded-xl object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, fotoUrl: "" }))}
-                  className="text-sm border rounded px-2 py-1"
-                >
-                  Quitar foto
-                </button>
-              </div>
-            )}
-          </div>
+            <input
+              className="border rounded px-3 py-2"
+              placeholder="DNI"
+              value={form.dni}
+              onChange={(e) => setForm({ ...form, dni: e.target.value })}
+              required
+            />
+            <input
+              className="border rounded px-3 py-2"
+              type="date"
+              placeholder="Fecha de nacimiento"
+              value={form.fechaNacimiento}
+              onChange={(e) =>
+                setForm({ ...form, fechaNacimiento: e.target.value })
+              }
+              required
+            />
 
-          <input
-            className="border rounded px-3 py-2"
-            placeholder="Nombre y Apellido"
-            value={form.nombreApellido}
-            onChange={(e) =>
-              setForm({ ...form, nombreApellido: e.target.value })
-            }
-            required
-          />
-          <input
-            className="border rounded px-3 py-2"
-            placeholder="Profesión"
-            value={form.profesion}
-            onChange={(e) => setForm({ ...form, profesion: e.target.value })}
-            required
-          />
+            <input
+              className="border rounded px-3 py-2"
+              placeholder="CBU / CVU"
+              value={form.cbuCvu}
+              onChange={(e) => setForm({ ...form, cbuCvu: e.target.value })}
+              required
+            />
 
-          <input
-            className="border rounded px-3 py-2"
-            placeholder="DNI"
-            value={form.dni}
-            onChange={(e) => setForm({ ...form, dni: e.target.value })}
-            required
-          />
-          <input
-            className="border rounded px-3 py-2"
-            type="date"
-            placeholder="Fecha de nacimiento"
-            value={form.fechaNacimiento}
-            onChange={(e) =>
-              setForm({ ...form, fechaNacimiento: e.target.value })
-            }
-            required
-          />
+            <input
+              className="border rounded px-3 py-2"
+              placeholder="Teléfono"
+              value={form.telefono}
+              onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+            />
+            <input
+              className="border rounded px-3 py-2"
+              type="email"
+              placeholder="Email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
+            <input
+              className="border rounded px-3 py-2 md:col-span-2"
+              placeholder="Dirección"
+              value={form.direccion}
+              onChange={(e) => setForm({ ...form, direccion: e.target.value })}
+            />
 
-          <input
-            className="border rounded px-3 py-2"
-            placeholder="CBU / CVU"
-            value={form.cbuCvu}
-            onChange={(e) => setForm({ ...form, cbuCvu: e.target.value })}
-            required
-          />
+            <input
+              className="border rounded px-3 py-2 md:col-span-2"
+              placeholder="Foto URL (opcional)"
+              value={form.fotoUrl}
+              onChange={(e) => setForm({ ...form, fotoUrl: e.target.value })}
+            />
+            <textarea
+              className="border rounded px-3 py-2 md:col-span-2"
+              placeholder="Observaciones"
+              value={form.observaciones}
+              onChange={(e) =>
+                setForm({ ...form, observaciones: e.target.value })
+              }
+            />
 
-          <input
-            className="border rounded px-3 py-2"
-            placeholder="Teléfono"
-            value={form.telefono}
-            onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-          />
-          <input
-            className="border rounded px-3 py-2"
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-          />
-          <input
-            className="border rounded px-3 py-2 md:col-span-2"
-            placeholder="Dirección"
-            value={form.direccion}
-            onChange={(e) => setForm({ ...form, direccion: e.target.value })}
-          />
-
-          <input
-            className="border rounded px-3 py-2 md:col-span-2"
-            placeholder="Foto URL (opcional)"
-            value={form.fotoUrl}
-            onChange={(e) => setForm({ ...form, fotoUrl: e.target.value })}
-          />
-          <textarea
-            className="border rounded px-3 py-2 md:col-span-2"
-            placeholder="Observaciones"
-            value={form.observaciones}
-            onChange={(e) =>
-              setForm({ ...form, observaciones: e.target.value })
-            }
-          />
-
-          {err && <p className="text-red-600 md:col-span-2">{err}</p>}
-
-          <div className="md:col-span-2 flex justify-end gap-2">
+            {err && <p className="text-red-600 md:col-span-2">{err}</p>}
+          </form>
+        </div>
+        {/* FOOTER STICKY (FUERA DEL FORM) */}
+        <div className="sticky bottom-0 bg-white border-t p-4">
+          <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
@@ -275,11 +283,16 @@ function ProfesionalFormModal({ open, onClose, onSaved, initialData }) {
             >
               Cancelar
             </button>
-            <button className="px-4 py-2 rounded bg-[#04BF8A] text-white">
+            {/* Este botón envía el form aunque esté fuera, gracias al atributo form */}
+            <button
+              type="submit"
+              form="profForm"
+              className="px-4 py-2 rounded bg-[#04BF8A] text-white"
+            >
               {editMode ? "Guardar cambios" : "Crear profesional"}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
