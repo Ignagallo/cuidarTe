@@ -1,0 +1,27 @@
+# =========================
+# Editor / OS
+# =========================
+.vscode/
+.DS_Store
+
+# =========================
+# Backend
+# =========================
+cuidarte-backend/uploads/
+cuidarte-backend/node_modules/
+cuidarte-backend/.env
+
+# =========================
+# Frontend (Next.js)
+# =========================
+cuidarte-web/node_modules/
+cuidarte-web/.next/
+cuidarte-web/.env.local
+cuidarte-web/.env
+cuidarte-web/package-lock.json
+cuidarte-web/package.json
+
+# =========================
+# Logs
+# =========================
+*.log
