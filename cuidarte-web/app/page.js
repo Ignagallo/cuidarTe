@@ -10,6 +10,7 @@ import TestimonialsSection from "./components/TestimonialsSection";
 import AnimatedFooter from "./components/AnimatedFooter";
 import AnimateSection from "./components/AnimateSection";
 import { fadeUp, fadeLeft, fadeRight, scaleIn } from "./components/animations";
+import Link from "next/link";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -72,7 +73,7 @@ export default function Page() {
       >
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <a
+            <Link
               href="/"
               className="bg-white rounded-full cursor-pointer transition-all duration-200 ease-out
               hover:scale-105
@@ -91,7 +92,7 @@ export default function Page() {
                 className="h-22 w-auto px-1 py-1" // Mantiene proporción
                 priority // Prioridad de carga
               />
-            </a>
+            </Link>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-lg">
             <a href="#servicios" className="hover:text-[#04BF8A]">
