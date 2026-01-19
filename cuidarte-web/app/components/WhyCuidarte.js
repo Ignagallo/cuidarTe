@@ -69,7 +69,7 @@ export default function WhyCuidarte() {
     <section
       ref={sectionRef}
       id="whyCuidarte"
-      className={`snap-start bg-[#1D4A74] text-white border-t border-white/20 min-h-screen flex items-center
+      className={`bg-[#1D4A74] text-white border-t border-white/20 py-4 md:py-8 flex items-center
     transition-all duration-700 ease-out
     ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
   `}

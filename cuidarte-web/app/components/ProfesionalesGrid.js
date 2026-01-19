@@ -106,7 +106,7 @@ export default function ProfesionalesGrid() {
   return (
     <section
       id="profesionales"
-      className="bg-[#04BF8A] text-white py-24 snap-start"
+      className="bg-[#04BF8A] text-white py-8 md:py-12"
     >
       <div className="mx-auto max-w-7xl px-4 w-full">
         <h2
