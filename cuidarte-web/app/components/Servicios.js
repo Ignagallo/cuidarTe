@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 
 const servicios = [
-  { id: 1, title: "Cuidador", desc: "Asistencia y acompañamiento diario", image: "/cuidado.1.jpg" },
-  { id: 2, title: "Limpieza", desc: "Higiene integral del hogar", image: "/limpieza.3.png" },
-  { id: 3, title: "Kinesiología", desc: "Rehabilitación y movilidad", image: "/kinesiologo.1.jpg" },
-  { id: 4, title: "Enfermería", desc: "Atención profesional domiciliaria", image: "/enfermeria.1.jpg" },
-  { id: 5, title: "Nutrición", desc: "Planes alimentarios personalizados", image: "/nutricionista.1.jpg" },
-  { id: 6, title: "Terapia Ocupacional", desc: "Autonomía en actividades diarias", image: "/terapiaocupacional.2.jpg" },
-  { id: 7, title: "Psicología", desc: "Acompañamiento emocional", image: "/psicologo.2.webp" },
-  { id: 8, title: "Radiología", desc: "Estudios por imágenes a domicilio", image: "/radiologo.2.jpg" },
-  { id: 9, title: "Análisis Clínicos", desc: "Extracciones y estudios", image: "/analisis-clinico.2.jpg" },
-  { id: 10, title: "Acompañante Terapéutico", desc: "Contención profesional", image: "/acompanante-terapeutico.2.png" },
+  { id: 1, title: "Cuidador", desc: "Asistencia y acompañamiento diario", image: "/cuidado1.jpg" },
+  { id: 2, title: "Limpieza", desc: "Higiene integral del hogar", image: "/limpieza3.png" },
+  { id: 3, title: "Kinesiología", desc: "Rehabilitación y movilidad", image: "/kinesiologo1.jpg" },
+  { id: 4, title: "Enfermería", desc: "Atención profesional domiciliaria", image: "/enfermeria1.jpg" },
+  { id: 5, title: "Nutrición", desc: "Planes alimentarios personalizados", image: "/nutricionista1.jpg" },
+  { id: 6, title: "Terapia Ocupacional", desc: "Autonomía en actividades diarias", image: "/terapiaocupacional2.jpg" },
+  { id: 7, title: "Psicología", desc: "Acompañamiento emocional", image: "/psicologo2.webp" },
+  { id: 8, title: "Radiología", desc: "Estudios por imágenes a domicilio", image: "/radiologo2.jpg" },
+  { id: 9, title: "Análisis Clínicos", desc: "Extracciones y estudios", image: "/analisis-clinico2.jpg" },
+  { id: 10, title: "Acompañante Terapéutico", desc: "Contención profesional", image: "/acompanante-terapeutico2.png" },
 ];
 
 export default function Servicios() {

@@ -19,21 +19,21 @@ const PROFESIONALES = [
     especialidad: "Enfermería domiciliaria",
     descripcion:
       "Más de 10 años de experiencia en cuidados clínicos y acompañamiento.",
-    fotoUrl: "/acompanante-terapeutico.1.jpg",
+    fotoUrl: "/acompanante-terapeutico1.jpg",
   },
   {
     id: 2,
     nombre: "Juan Pérez",
     especialidad: "Kinesiología",
     descripcion: "Rehabilitación física personalizada en domicilio.",
-    fotoUrl: "/analisis-clinico.3.jpg",
+    fotoUrl: "/analisis-clinico3.jpg",
   },
   {
     id: 3,
     nombre: "Laura Fernández",
     especialidad: "Acompañamiento terapéutico",
     descripcion: "Especialista en adultos mayores y salud mental.",
-    fotoUrl: "/cuidado.1.jpg",
+    fotoUrl: "/cuidado1.jpg",
   },
   {
     id: 4,
@@ -47,14 +47,14 @@ const PROFESIONALES = [
     nombre: "Ana López",
     especialidad: "Psicología",
     descripcion: "Atención y contención emocional en domicilio.",
-    fotoUrl: "/kinesiologo.2.jpg",
+    fotoUrl: "/kinesiologo2.jpg",
   },
   {
     id: 6,
     nombre: "Sofía Martínez",
     especialidad: "Terapia ocupacional",
     descripcion: "Estimulación y autonomía funcional.",
-    fotoUrl: "/limpieza.1.jpg",
+    fotoUrl: "/limpieza1.jpg",
   },
 ];
 

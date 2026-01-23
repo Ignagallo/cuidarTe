@@ -86,7 +86,7 @@ export default function Page() {
             >
               <Image
                 src="/nuevologoSinFondo.png" // Ruta desde public/
-                alt="cuidarTE - Atención médica en casa"
+                alt="Cuidarte - Atención médica en casa"
                 width={400} // Ancho real de tu logo
                 height={100} // Alto real de tu logo
                 className="h-22 w-auto px-1 py-1" // Mantiene proporción
@@ -175,6 +175,7 @@ export default function Page() {
                       ref={videoRef}
                       className="absolute inset-0 w-full h-full object-cover"
                       src="/video_cuidarte.mp4"
+                      type="video/mp4"
                       autoPlay
                       loop
                       playsInline
