@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import Modal from "@/app/components/Modal";
-import UsuarioForm from "@/app/components/UsuarioForm";
-import AsignarPerfilModal from "@/app/components/AsignarPerfilModal";
+import Modal from "@/components/Modal";
+import UsuarioForm from "@/components/UsuarioForm";
+import AsignarPerfilModal from "@/components/AsignarPerfilModal";
 
 export default function UsuariosAdminPage() {
   const [users, setUsers] = useState([]);

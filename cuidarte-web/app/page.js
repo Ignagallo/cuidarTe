@@ -3,14 +3,14 @@
 import { Montserrat, Open_Sans } from "next/font/google";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import Servicios from "./components/Servicios";
-import WhyCuidarte from "./components/WhyCuidarte";
-import ProfesionalesGrid from "./components/ProfesionalesGrid";
-import ContactSection from "./components/ContactSection";
-import TestimonialsSection from "./components/TestimonialsSection";
-import AnimatedFooter from "./components/AnimatedFooter";
-import AnimateSection from "./components/AnimateSection";
-import { fadeUp, fadeLeft, fadeRight, scaleIn } from "./components/animations";
+import Servicios from "../components/Servicios";
+import WhyCuidarte from "../components/WhyCuidarte";
+import ProfesionalesGrid from "../components/ProfesionalesGrid";
+import ContactSection from "../components/ContactSection";
+import TestimonialsSection from "../components/TestimonialsSection";
+import AnimatedFooter from "../components/AnimatedFooter";
+import AnimateSection from "../components/AnimateSection";
+import { fadeUp, fadeLeft, fadeRight, scaleIn } from "../components/animations";
 import Link from "next/link";
 
 const montserrat = Montserrat({

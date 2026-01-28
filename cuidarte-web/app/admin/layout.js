@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getMe } from "@/lib/api";
-import AdminLoading from "../components/AdminLoading";
+import AdminLoading from "../../components/AdminLoading";
 
 const COLLAPSED_WIDTH = 56; // ancho sidebar colapsado (px)
 
