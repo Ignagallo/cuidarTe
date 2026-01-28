@@ -1,5 +1,3 @@
-console.log(">>> CARGANDO ROUTES /api/usuarios");
-
 // routes/usuarios.js
 const express = require("express");
 const router = express.Router();
@@ -8,7 +6,7 @@ const auth = require("../middleware/auth");
 const requireRole = require("../middleware/requireRole");
 const Cliente = require("../models/Cliente");
 const Profesional = require("../models/Profesional");
-
+const jwt = require("jsonwebtoken");
 
 router.get("/me", auth, (req, res) => {
   res.json({
@@ -33,21 +31,22 @@ router.get("/", auth, requireRole("admin"), async (_req, res) => {
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  const usuario = await Usuario.findOne({ email, activo: true })
-    .populate("clienteRef")
-    .populate("profesionalRef");
-
-  if (!usuario) return res.status(404).json({ error: "Usuario no encontrado" });
+  const usuario = await Usuario.findOne({ email, activo: true });
+  if (!usuario) return res.status(401).json({ error: "Credenciales inválidas" });
 
   const ok = await usuario.compararPassword(password);
-  if (!ok) return res.status(401).json({ error: "Contraseña incorrecta" });
+  if (!ok) return res.status(401).json({ error: "Credenciales inválidas" });
 
-  const isProd = process.env.NODE_ENV === "production";
+  const token = jwt.sign(
+    { id: usuario._id, rol: usuario.rol },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
-  res.cookie("token", usuario._id.toString(), {
+  res.cookie("token", token, {
     httpOnly: true,
-    sameSite: isProd ? "none" : "lax",
-    secure: isProd,
+    secure: true,
+    sameSite: "none",
     maxAge: 1000 * 60 * 60 * 24 * 7,
   });
 
@@ -58,6 +57,7 @@ router.post("/login", async (req, res) => {
     rol: usuario.rol,
   });
 });
+
 
 // CREAR USUARIO
 router.post("/", auth, requireRole("admin"), async (req, res) => {
