@@ -1,185 +1,210 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { apiFetch } from '@/lib/api';
+// app/admin/clientes/page.js
+"use client";
 
-const FRIENDLY_PLACEHOLDERS = {
-  nombreApellido: 'Nombre y apellido',
-  email: 'Email',
-  direccion: 'Dirección',
-  dni: 'DNI',
-  fechaNacimiento: 'Fecha de nacimiento',
-  telefono: 'Teléfono',
-};
+import { useEffect, useState } from "react";
+import ClienteModal from "./ClienteModal";
+
+const API = process.env.NEXT_PUBLIC_API_BASE;
 
 export default function ClientesPage() {
-  const [list, setList] = useState([]);
-  const [form, setForm] = useState({
-    nombreApellido:'', email:'', direccion:'', dni:'', fechaNacimiento:'', telefono:''
-  });
-  const [err, setErr] = useState('');
-  const [ok, setOk] = useState('');
-  const [selectedId, setSelectedId] = useState(null);
-  const [editMode, setEditMode] = useState(false);
+  const [clientes, setClientes] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
 
-  const load = async () => {
-    setErr(''); setOk('');
-    try {
-      const data = await apiFetch('/api/clientes');
-      setList(data);
-    } catch(e){ setErr(e.message); }
-  };
-  useEffect(()=>{ load(); }, []);
-
-  const resetForm = () => {
-    setForm({ nombreApellido:'', email:'', direccion:'', dni:'', fechaNacimiento:'', telefono:'' });
-    setEditMode(false);
-    setSelectedId(null);
-  };
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setErr(''); setOk('');
-
-    // Validación client-side por DNI para CREAR (en edición dejamos que sea el backend)
-    if (!editMode) {
-      const yaExiste = list.some(c => (c.dni || '').trim() === (form.dni || '').trim());
-      if (yaExiste) {
-        setErr('Ya existe un cliente con ese DNI');
-        return;
-      }
-    }
-
-    try {
-      if (editMode && selectedId) {
-        await apiFetch(`/api/clientes/${selectedId}`, {
-          method: 'PUT',
-          body: JSON.stringify(form)
-        });
-        setOk('Cliente actualizado correctamente');
-      } else {
-        await apiFetch('/api/clientes', {
-          method: 'POST',
-          body: JSON.stringify(form)
-        });
-        setOk('Cliente creado correctamente');
-      }
-      resetForm();
-      load();
-    } catch(e){
-      setErr(e.message);
-    }
-  };
-
-  const onRowClick = (c) => {
-    setSelectedId(prev => prev === c._id ? null : c._id);
-  };
-
-  const onEdit = () => {
-    const c = list.find(x => x._id === selectedId);
-    if (!c) return;
-    setForm({
-      nombreApellido: c.nombreApellido || '',
-      email: c.email || '',
-      direccion: c.direccion || '',
-      dni: c.dni || '',
-      fechaNacimiento: c.fechaNacimiento ? c.fechaNacimiento.slice(0,10) : '',
-      telefono: c.telefono || '',
+  const fetchClientes = async () => {
+    const res = await fetch(`${API}/api/clientes`, {
+      credentials: "include",
     });
-    setEditMode(true);
-    setOk('Editando cliente seleccionado');
-    setErr('');
+    const data = await res.json();
+    setClientes(Array.isArray(data) ? data : []);
   };
 
-  const onDelete = async () => {
-    const c = list.find(x => x._id === selectedId);
-    if (!c) return;
-    const confirma = window.confirm(`¿Eliminar a ${c.nombreApellido} (DNI ${c.dni})? Esta acción no se puede deshacer.`);
-    if (!confirma) return;
-    setErr(''); setOk('');
+  useEffect(() => {
+    fetchClientes();
+  }, []);
+
+  const desactivarCliente = async (id) => {
+    if (!confirm("¿Desactivar este cliente?")) return;
+
     try {
-      await apiFetch(`/api/clientes/${selectedId}`, { method: 'DELETE' });
-      setOk('Cliente eliminado');
-      resetForm();
-      load();
-    } catch(e){ setErr(e.message); }
-  };
+      const res = await fetch(`${API}/api/clientes/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
 
-  const fields = ['nombreApellido','email','direccion','dni','fechaNacimiento','telefono'];
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error || "Error al desactivar cliente");
+      }
+
+      fetchClientes();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#1d4a74]">Clientes</h1>
-        {selectedId && (
-          <div className="flex gap-2">
-            <button onClick={onEdit}
-              className="px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Modificar</button>
-            <button onClick={onDelete}
-              className="px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Eliminar</button>
-            <button onClick={resetForm}
-              className="px-3 py-2 rounded-lg border">Cancelar</button>
-          </div>
-        )}
+    <div className="p-6 space-y-6 animate-[fadeIn_0.2s_ease-out]">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold text-[#1D4A74]">Clientes</h1>
+
+        <button
+          onClick={() => {
+            setEditing(null);
+            setOpen(true);
+          }}
+          className="
+            px-4 py-2
+            rounded-xl
+            bg-[#1D4A74]
+            text-white
+            shadow-md
+            hover:bg-[#163a5c]
+            transition
+          "
+        >
+          Nuevo cliente
+        </button>
       </div>
 
-      <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white p-4 rounded-xl shadow">
-        {fields.map((k)=>(
-          <input
-            key={k}
-            className="text-[#1D4A74] placeholder-gray-400 border rounded px-3 py-2"
-            required
-            type={k==='fechaNacimiento' ? 'date' : 'text'}
-            placeholder={FRIENDLY_PLACEHOLDERS[k] || k}
-            value={form[k]}
-            onChange={e=>setForm({...form,[k]:e.target.value})}
-          />
-        ))}
-        {err && <p className="text-red-600 col-span-full">{err}</p>}
-        {ok  && <p className="text-green-600 col-span-full">{ok}</p>}
-        <button className="md:col-span-3 bg-[#04bf8a] text-white font-bold rounded py-2">
-          {editMode ? 'Guardar cambios' : 'Crear cliente'}
-        </button>
-      </form>
-
-      <div className="bg-white rounded-xl shadow overflow-x-auto">
-        <table className="w-full text-sm text-[#1D4A74]">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="text-left p-2">Nombre</th>
-              <th>Email</th>
-              <th>DNI</th>
-              <th>Teléfono</th>
-              <th>Dirección</th>
-              <th>Fecha nac.</th>
+      {/* Tabla */}
+      <div className="
+        bg-white
+        rounded-2xl
+        shadow-lg
+        border border-gray-100
+        overflow-hidden
+      ">
+        <table className="w-full text-sm">
+          <thead className="bg-[#1D4A74] text-white">
+            <tr>
+              <th className="px-4 py-3 text-left font-semibold tracking-wide">
+                Cliente
+              </th>
+              <th className="px-4 py-3 text-left font-semibold tracking-wide">
+                DNI
+              </th>
+              <th className="px-4 py-3 text-left font-semibold tracking-wide">
+                Teléfono
+              </th>
+              <th className="px-4 py-3 text-center font-semibold tracking-wide">
+                Estado
+              </th>
+              <th className="px-4 py-3 text-left font-semibold tracking-wide">
+                Profesionales / Servicios
+              </th>
+              <th className="px-4 py-3 text-right font-semibold tracking-wide">
+                Acciones
+              </th>
             </tr>
           </thead>
+
           <tbody>
-            {list.map(c=> {
-              const isSel = c._id === selectedId;
-              return (
-                <tr
-                  key={c._id}
-                  onClick={()=>onRowClick(c)}
-                  className={`border-t cursor-pointer ${isSel ? 'bg-[#04bf8a]/10' : 'hover:bg-gray-50'}`}
-                  title="Click para seleccionar"
-                >
-                  <td className="p-2">{c.nombreApellido}</td>
-                  <td className="text-center">{c.email}</td>
-                  <td className="text-center">{c.dni}</td>
-                  <td className="text-center">{c.telefono}</td>
-                  <td className="text-center">{c.direccion}</td>
-                  <td className="text-center">{c.fechaNacimiento ? new Date(c.fechaNacimiento).toLocaleDateString() : '-'}</td>
-                </tr>
-              );
-            })}
-            {list.length===0 && (
+            {clientes.map((c) => (
+              <tr
+                key={c._id}
+                className="border-t hover:bg-[#1D4A74]/5 transition-colors"
+              >
+                {/* Cliente */}
+                <td className="px-4 py-2 text-[#1D4A74] font-medium">
+                  {c.nombreApellido}
+                </td>
+
+                {/* DNI */}
+                <td className="px-4 py-2 text-[#1D4A74]">
+                  {c.dni}
+                </td>
+
+                {/* Teléfono */}
+                <td className="px-4 py-2 text-[#1D4A74]">
+                  {c.telefono || "—"}
+                </td>
+
+                {/* Estado */}
+                <td className="px-4 py-2 text-center">
+                  <span
+                    className={`
+                      px-2 py-1
+                      rounded-full
+                      text-xs
+                      font-medium
+                      ${
+                        c.activo
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }
+                    `}
+                  >
+                    {c.activo ? "Activo" : "Inactivo"}
+                  </span>
+                </td>
+
+                {/* Profesionales / Servicios */}
+                <td className="px-4 py-2 text-gray-400 italic">
+                  Sin servicios
+                </td>
+
+                {/* Acciones */}
+                <td className="px-4 py-2 text-right space-x-2">
+                  <button
+                    onClick={() => {
+                      setEditing(c);
+                      setOpen(true);
+                    }}
+                    className="
+                      px-2 py-1
+                      rounded-md
+                      text-sm
+                      text-[#1D4A74]
+                      hover:bg-[#1D4A74]/10
+                      transition
+                    "
+                  >
+                    Editar
+                  </button>
+
+                  {c.activo && (
+                    <button
+                      onClick={() => desactivarCliente(c._id)}
+                      className="
+                        px-2 py-1
+                        rounded-md
+                        text-sm
+                        text-red-600
+                        hover:bg-red-50
+                        transition
+                      "
+                    >
+                      Desactivar
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+
+            {clientes.length === 0 && (
               <tr>
-                <td className="p-3 text-gray-500" colSpan={6}>Sin registros</td>
+                <td
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-gray-500 italic"
+                >
+                  No hay clientes cargados
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Modal */}
+      {open && (
+        <ClienteModal
+          editing={editing}
+          onClose={() => setOpen(false)}
+          onSaved={fetchClientes}
+        />
+      )}
     </div>
   );
 }

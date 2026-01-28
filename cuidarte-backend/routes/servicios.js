@@ -3,6 +3,7 @@ const router = express.Router();
 const Servicio = require("../models/Servicio");
 const Cliente = require("../models/Cliente");
 const Profesional = require("../models/Profesional");
+const auth = require("../middleware/auth");
 
 // Bloque de cobertura dias
 function mapaCobertura(serv) {
@@ -10,10 +11,10 @@ function mapaCobertura(serv) {
   (serv.coberturaDias || []).forEach((cd) => {
     if (!cd || !cd.fecha) return;
     const key = [
-    new Date(cd.fecha).getFullYear(),
-    String(new Date(cd.fecha).getMonth()+1).padStart(2,'0'),
-    String(new Date(cd.fecha).getDate()).padStart(2,'0')
-    ].join('-');
+      new Date(cd.fecha).getFullYear(),
+      String(new Date(cd.fecha).getMonth() + 1).padStart(2, "0"),
+      String(new Date(cd.fecha).getDate()).padStart(2, "0"),
+    ].join("-");
     m.set(key, cd.cubierto === true);
   });
   return m;
@@ -62,23 +63,31 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/agenda", async (req, res) => {
+router.get("/agenda", auth, async (req, res) => {
   try {
     const { start, end } = req.query;
     if (!start || !end) {
-      return res
-        .status(400)
-        .json({ error: "Parámetros start y end son requeridos (YYYY-MM-DD)" });
+      return res.status(400).json({ error: "Rango de fechas inválido" });
     }
-
     const startDate = new Date(start);
     const endDate = new Date(end);
 
-    // Traemos servicios que tienen alguna intersección con [start, end)
-    const servicios = await Servicio.find({
-      fechaFin: { $gte: startDate }, // termina después de inicio del rango
-      fechaInicio: { $lte: endDate }, // empieza antes del fin del rango
-    })
+    const { rol, profesional, cliente } = req.user;
+
+    const filtro = {
+      fechaFin: { $gte: new Date(start) },
+      fechaInicio: { $lte: new Date(end) },
+    };
+
+    if (rol === "profesional") {
+      filtro.profesional = profesional;
+    }
+
+    if (rol === "cliente") {
+      filtro.cliente = cliente;
+    }
+
+    const servicios = await Servicio.find(filtro)
       .populate("cliente", "nombreApellido")
       .populate("profesional", "nombreApellido profesion");
 
@@ -89,7 +98,6 @@ router.get("/agenda", async (req, res) => {
       return x;
     };
     const formatDateTime = (d, timeHHmm) => {
-      // Devuelve string ISO local sin zona para que FC lo interprete con TZ del navegador.
       const [hh, mm] = timeHHmm.split(":");
       const dt = new Date(d);
       dt.setHours(parseInt(hh, 10), parseInt(mm, 10), 0, 0);
@@ -166,13 +174,13 @@ router.put("/:id", async (req, res) => {
 
 // ✅ ELIMINAR
 router.delete("/:id", async (req, res) => {
-  try {
-    const s = await Servicio.findByIdAndDelete(req.params.id);
-    if (!s) return res.status(404).json({ error: "No encontrado" });
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(400).json({ error: e.message });
-  }
+  const s = await Servicio.findByIdAndUpdate(
+    req.params.id,
+    { estado: "cancelado" },
+    { new: true },
+  );
+  if (!s) return res.status(404).json({ error: "No encontrado" });
+  res.json({ ok: true });
 });
 
 // ✅ COBERTURA: marcar días
@@ -183,7 +191,7 @@ router.patch("/:id/cobertura", async (req, res) => {
     if (!s) return res.status(404).json({ error: "No encontrado" });
 
     const ocurrencias = new Set(
-      ocurrenciasDelServicio(s).map((d) => d.toISOString().slice(0, 10))
+      ocurrenciasDelServicio(s).map((d) => d.toISOString().slice(0, 10)),
     );
     const entrada = Array.isArray(req.body?.dias) ? req.body.dias : [];
 
@@ -194,7 +202,7 @@ router.patch("/:id/cobertura", async (req, res) => {
 
     // aplicar (upsert por fecha dentro de coberturaDias)
     const mapa = new Map(
-      s.coberturaDias.map((cd) => [cd.fecha.toISOString().slice(0, 10), cd])
+      s.coberturaDias.map((cd) => [cd.fecha.toISOString().slice(0, 10), cd]),
     );
     for (const d of updates) {
       const exist = mapa.get(d.fecha);
@@ -211,7 +219,7 @@ router.patch("/:id/cobertura", async (req, res) => {
       }
     }
     s.coberturaDias = Array.from(mapa.values()).sort(
-      (a, b) => a.fecha - b.fecha
+      (a, b) => a.fecha - b.fecha,
     );
     await s.save();
     res.json({ ok: true, coberturaDias: s.coberturaDias });

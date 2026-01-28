@@ -1,88 +1,261 @@
-const express = require('express');
+console.log(">>> CARGANDO ROUTES /api/usuarios");
+
+// routes/usuarios.js
+const express = require("express");
 const router = express.Router();
-const Usuario = require('../models/Usuario');
+const Usuario = require("../models/Usuario");
+const auth = require("../middleware/auth");
+const requireRole = require("../middleware/requireRole");
+const Cliente = require("../models/Cliente");
+const Profesional = require("../models/Profesional");
 
-// Crear admin
-router.post('/', async (req, res) => {
+
+router.get("/me", auth, (req, res) => {
+  res.json({
+    id: req.user._id,
+    nombre: req.user.nombre,
+    email: req.user.email,
+    rol: req.user.rol,
+  });
+});
+
+//LISTAR USUARIO
+router.get("/", auth, requireRole("admin"), async (_req, res) => {
+  console.log(">>> GET /api/usuarios EJECUTADO");
+  const users = await Usuario.find()
+    .select("-password") // nunca enviar password
+    .sort({ createdAt: -1 });
+
+  res.json(users);
+});
+
+// LOGIN
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const usuario = await Usuario.findOne({ email, activo: true })
+    .populate("clienteRef")
+    .populate("profesionalRef");
+
+  if (!usuario) return res.status(404).json({ error: "Usuario no encontrado" });
+
+  const ok = await usuario.compararPassword(password);
+  if (!ok) return res.status(401).json({ error: "Contraseña incorrecta" });
+
+  const isProd = process.env.NODE_ENV === "production";
+
+  res.cookie("token", usuario._id.toString(), {
+    httpOnly: true,
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+  });
+
+  res.json({
+    id: usuario._id,
+    nombre: usuario.nombre,
+    email: usuario.email,
+    rol: usuario.rol,
+  });
+});
+
+// CREAR USUARIO
+router.post("/", auth, requireRole("admin"), async (req, res) => {
   try {
-    const { nombre, email, password } = req.body;
+    const { nombre, email, password, rol } = req.body;
 
-    if (!nombre || !email || !password) {
-      return res.status(400).json({ error: 'Faltan datos requeridos'});
+    if (!nombre || !email || !password || !rol) {
+      return res.status(400).json({ error: "Datos incompletos" });
     }
 
     const existe = await Usuario.findOne({ email });
     if (existe) {
-      return res.status(400).json({ error: 'Email ya registrado' });
+      return res.status(409).json({ error: "Email ya registrado" });
     }
 
-    const nuevoUsuario = new Usuario({ nombre, email, password });
-    await nuevoUsuario.save();
+    const nuevo = await Usuario.create({
+      nombre,
+      email,
+      password,
+      rol,
+    });
 
     res.status(201).json({
-      mensaje: 'Usuario creado correctamente',
-      usuario: {
-        id: nuevoUsuario._id,
-        nombre: nuevoUsuario.nombre,
-        email: nuevoUsuario.email
-      }
+      id: nuevo._id,
+      nombre: nuevo.nombre,
+      email: nuevo.email,
+      rol: nuevo.rol,
+      activo: nuevo.activo,
     });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
   }
 });
 
-// Obtener todos los usuarios
-router.get('/', async (req, res) => {
-    try {
-        const usuarios = await Usuario.find();
-        res.json(usuarios);
-    } catch (error) {
-        res.status(500).json({ mensaje: 'Error al obtener usuarios' });
-    }
-});
-
-// LOGIN de usuario
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
+//EDITAR USUARIO
+router.put("/:id", auth, requireRole("admin"), async (req, res) => {
   try {
-    // Buscar usuario por email
-    const usuario = await Usuario.findOne({ email });
-    if (!usuario) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
+    const { nombre, email, rol, activo } = req.body;
 
-    // Comparar contraseña con bcrypt
-    const passwordValida = await usuario.compararPassword(password);
-    if (!passwordValida) {
-      return res.status(401).json({ error: 'Contraseña incorrecta' });
-    }
+    const user = await Usuario.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    // Generar token o sesión
-    const jwt = `${usuario._id}-${Date.now()}`;
+    if (nombre !== undefined) user.nombre = nombre;
+    if (email !== undefined) user.email = email;
+    if (rol !== undefined) user.rol = rol;
+    if (activo !== undefined) user.activo = activo;
 
-    // Setear cookie segura para cross-site
-    res.cookie('token', jwt, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 1000 * 60 * 60 * 24 * 7
-    });
+    await user.save();
 
     res.json({
-      mensaje: 'Login correcto',
-      usuario: {
-        id: usuario._id,
-        nombre: usuario.nombre,
-        email: usuario.email,
-        rol: usuario.rol
-      }
+      id: user._id,
+      nombre: user.nombre,
+      email: user.email,
+      rol: user.rol,
+      activo: user.activo,
     });
-
-  } catch (error) {
-    res.status(500).json({ error: 'Error al hacer login' });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
   }
+});
+
+// DESACTIVAR USUARIO
+router.delete("/:id", auth, requireRole("admin"), async (req, res) => {
+  const user = await Usuario.findByIdAndUpdate(
+    req.params.id,
+    { activo: false },
+    { new: true },
+  );
+
+  if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+
+  res.json({ ok: true });
+});
+// Asignar usuario a cliente
+router.post(
+  "/:id/asignar-cliente",
+  auth,
+  requireRole("admin"),
+  async (req, res) => {
+    try {
+      const { clienteId } = req.body;
+
+      if (!clienteId) {
+        return res.status(400).json({ error: "clienteId requerido" });
+      }
+
+      const usuario = await Usuario.findById(req.params.id);
+      if (!usuario) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      if (usuario.rol !== "cliente") {
+        return res.status(400).json({
+          error: "El usuario no tiene rol cliente",
+        });
+      }
+
+      if (usuario.clienteRef) {
+        return res.status(409).json({
+          error: "El usuario ya tiene un cliente asignado",
+        });
+      }
+
+      const cliente = await Cliente.findById(clienteId);
+      if (!cliente) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+
+      const yaAsignado = await Usuario.findOne({ clienteRef: clienteId });
+      if (yaAsignado) {
+        return res.status(409).json({
+          error: "Ese cliente ya está asignado a otro usuario",
+        });
+      }
+
+      usuario.clienteRef = cliente._id;
+      await usuario.save();
+
+      res.json({
+        ok: true,
+        usuario: {
+          id: usuario._id,
+          nombre: usuario.nombre,
+          rol: usuario.rol,
+          clienteRef: usuario.clienteRef,
+        },
+      });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  }
+);
+// Asignar usuario a profesional
+router.post(
+  "/:id/asignar-profesional",
+  auth,
+  requireRole("admin"),
+  async (req, res) => {
+    try {
+      const { profesionalId } = req.body;
+
+      if (!profesionalId) {
+        return res.status(400).json({ error: "profesionalId requerido" });
+      }
+
+      const usuario = await Usuario.findById(req.params.id);
+      if (!usuario) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      if (usuario.rol !== "profesional") {
+        return res.status(400).json({
+          error: "El usuario no tiene rol profesional",
+        });
+      }
+
+      if (usuario.profesionalRef) {
+        return res.status(409).json({
+          error: "El usuario ya tiene un profesional asignado",
+        });
+      }
+
+      const profesional = await Profesional.findById(profesionalId);
+      if (!profesional) {
+        return res.status(404).json({ error: "Profesional no encontrado" });
+      }
+
+      const yaAsignado = await Usuario.findOne({
+        profesionalRef: profesionalId,
+      });
+      if (yaAsignado) {
+        return res.status(409).json({
+          error: "Ese profesional ya está asignado a otro usuario",
+        });
+      }
+
+      usuario.profesionalRef = profesional._id;
+      await usuario.save();
+
+      res.json({
+        ok: true,
+        usuario: {
+          id: usuario._id,
+          nombre: usuario.nombre,
+          rol: usuario.rol,
+          profesionalRef: usuario.profesionalRef,
+        },
+      });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  }
+);
+
+// LOGOUT
+router.post("/logout", auth, (_req, res) => {
+  res.clearCookie("token");
+  res.json({ ok: true });
 });
 
 module.exports = router;

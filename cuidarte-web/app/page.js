@@ -1,3 +1,4 @@
+// cuidarte-web/app/page.js
 "use client";
 import { Montserrat, Open_Sans } from "next/font/google";
 import Image from "next/image";
