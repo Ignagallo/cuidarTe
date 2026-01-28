@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getMe } from '@/lib/api';
-import AdminLoading from '@app/components/AdminLoading';
+import AdminLoading from '@components/AdminLoading';
 
 export default function ProfesionalLayout({ children }) {
   const router = useRouter();
