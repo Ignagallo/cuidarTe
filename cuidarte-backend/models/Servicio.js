@@ -2,22 +2,12 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const SERVICE_TYPES = [
-  'asistencia_diaria',
-  'acompanamiento',
-  'kinesiologia',
-  'enfermeria',
-  'otro'
-];
-
-const CoberturaDiaSchema = new Schema({
-  fecha:    { type: Date, required: true },   // día calendario
-  cubierto: { type: Boolean, default: false },// pagado / impago
-  nota:     { type: String }
-}, { _id: false });
-
 const ServicioSchema = new Schema({
-  tipo:        { type: String, enum: SERVICE_TYPES, default: 'asistencia_diaria' },
+  tipoServicio: {
+    type: Schema.Types.ObjectId,
+    ref: 'TipoServicio',
+    required: true
+  },
 
   estado: {
     type: String,
@@ -26,10 +16,10 @@ const ServicioSchema = new Schema({
   },
 
   fechaInicio: { type: Date, required: true },
-  fechaFin:    { type: Date, required: true },
+  fechaFin: { type: Date }, // opcional (servicio indefinido)
 
-  horaInicio:  { type: String, required: true }, // "08:00"
-  horaFin:     { type: String, required: true }, // "12:00"
+  horaInicio: { type: String, required: true },
+  horaFin: { type: String, required: true },
 
   diasSemana: {
     type: [Number],
@@ -37,13 +27,28 @@ const ServicioSchema = new Schema({
     validate: v => v.every(d => d >= 0 && d <= 6)
   },
 
-  cliente:     { type: Schema.Types.ObjectId, ref: 'Cliente', required: true },
-  profesional: { type: Schema.Types.ObjectId, ref: 'Profesional', required: true },
+  cliente: {
+    type: Schema.Types.ObjectId,
+    ref: 'Cliente',
+    required: true
+  },
 
-  indicaciones:{ type: String },
+  profesional: {
+    type: Schema.Types.ObjectId,
+    ref: 'Profesional',
+    required: true
+  },
 
-  coberturaDias: { type: [CoberturaDiaSchema], default: [] }
+  indicaciones: { type: String },
+
+  observacionesInternas: { type: String },
+
+  creadoPor: {
+    type: Schema.Types.ObjectId,
+    ref: 'Usuario'
+  }
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('Servicio', ServicioSchema);
-module.exports.SERVICE_TYPES = SERVICE_TYPES;
+

@@ -8,31 +8,14 @@ const Cliente = require("../models/Cliente");
 const Profesional = require("../models/Profesional");
 const jwt = require("jsonwebtoken");
 
-router.get("/me", auth, (req, res) => {
-  res.json({
-    id: req.user._id,
-    nombre: req.user.nombre,
-    email: req.user.email,
-    rol: req.user.rol,
-  });
-});
-
-//LISTAR USUARIO
-router.get("/", auth, requireRole("admin"), async (_req, res) => {
-  console.log(">>> GET /api/usuarios EJECUTADO");
-  const users = await Usuario.find()
-    .select("-password") // nunca enviar password
-    .sort({ createdAt: -1 });
-
-  res.json(users);
-});
-
+//----------------------- AUTH / SESION -------------------
 // LOGIN
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   const usuario = await Usuario.findOne({ email, activo: true });
-  if (!usuario) return res.status(401).json({ error: "Credenciales inválidas" });
+  if (!usuario)
+    return res.status(401).json({ error: "Credenciales inválidas" });
 
   const ok = await usuario.compararPassword(password);
   if (!ok) return res.status(401).json({ error: "Credenciales inválidas" });
@@ -40,7 +23,7 @@ router.post("/login", async (req, res) => {
   const token = jwt.sign(
     { id: usuario._id, rol: usuario.rol },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "7d" },
   );
 
   res.cookie("token", token, {
@@ -55,10 +38,59 @@ router.post("/login", async (req, res) => {
     nombre: usuario.nombre,
     email: usuario.email,
     rol: usuario.rol,
+    requiereCambioPassword: usuario.requiereCambioPassword,
+  });
+});
+// LOGOUT
+router.post("/logout", auth, (_req, res) => {
+  res.clearCookie("token");
+  res.json({ ok: true });
+});
+// ADMIN
+router.get("/me", auth, (req, res) => {
+  res.json({
+    id: req.user._id,
+    nombre: req.user.nombre,
+    email: req.user.email,
+    rol: req.user.rol,
   });
 });
 
+//------------- SESION CLIENTE / PROFESIONAL---------------
+// CAMBIAR PASSWORD (usuario logueado)
+router.put("/cambiar-password", auth, async (req, res) => {
+  try {
+    const { password } = req.body;
 
+    if (!password || password.length < 6) {
+      return res
+        .status(400)
+        .json({ error: "La contraseña debe tener al menos 6 caracteres" });
+    }
+
+    const user = await Usuario.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    user.password = password;
+    user.requiereCambioPassword = false;
+    await user.save();
+
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+//-------------------- PANEL ADMIN -------------------------
+//LISTAR USUARIO
+router.get("/", auth, requireRole("admin"), async (_req, res) => {
+  const users = await Usuario.find()
+    .select("-password") // nunca enviar password
+    .sort({ createdAt: -1 });
+  res.json(users);
+});
 // CREAR USUARIO
 router.post("/", auth, requireRole("admin"), async (req, res) => {
   try {
@@ -91,7 +123,6 @@ router.post("/", auth, requireRole("admin"), async (req, res) => {
     res.status(400).json({ error: e.message });
   }
 });
-
 //EDITAR USUARIO
 router.put("/:id", auth, requireRole("admin"), async (req, res) => {
   try {
@@ -118,7 +149,6 @@ router.put("/:id", auth, requireRole("admin"), async (req, res) => {
     res.status(400).json({ error: e.message });
   }
 });
-
 // DESACTIVAR USUARIO
 router.delete("/:id", auth, requireRole("admin"), async (req, res) => {
   const user = await Usuario.findByIdAndUpdate(
@@ -131,6 +161,32 @@ router.delete("/:id", auth, requireRole("admin"), async (req, res) => {
 
   res.json({ ok: true });
 });
+// RESET PASSWORD (admin)
+router.put(
+  "/:id/reset-password",
+  auth,
+  requireRole("admin"),
+  async (req, res) => {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ error: "Password requerida" });
+    }
+
+    const user = await Usuario.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    user.password = password;
+    user.requiereCambioPassword = user.rol !== "admin";
+    await user.save();
+
+    res.json({ ok: true });
+  },
+);
+
+//-------------------- ASIGNACIONES -----------------------
 // Asignar usuario a cliente
 router.post(
   "/:id/asignar-cliente",
@@ -188,7 +244,7 @@ router.post(
     } catch (e) {
       res.status(400).json({ error: e.message });
     }
-  }
+  },
 );
 // Asignar usuario a profesional
 router.post(
@@ -249,13 +305,7 @@ router.post(
     } catch (e) {
       res.status(400).json({ error: e.message });
     }
-  }
+  },
 );
-
-// LOGOUT
-router.post("/logout", auth, (_req, res) => {
-  res.clearCookie("token");
-  res.json({ ok: true });
-});
 
 module.exports = router;

@@ -1,3 +1,4 @@
+// app/admin/layout.js
 "use client";
 
 import Link from "next/link";
@@ -25,11 +26,17 @@ export default function AdminLayout({ children }) {
       const remaining = Math.max(0, MIN_DELAY - elapsed);
 
       setTimeout(() => {
-        if (!user || user.rol !== "admin") {
+        if (!user) {
           router.replace("/login");
-        } else {
-          setCheckingAuth(false);
+          return;
         }
+
+        if (user.rol !== "admin") {
+          router.replace("/panel");
+          return;
+        }
+
+        setCheckingAuth(false);
       }, remaining);
     });
   }, [router]);
@@ -94,7 +101,7 @@ export default function AdminLayout({ children }) {
             icon="🧑‍💻"
             label="Usuarios"
             open={open}
-            active={pathname.startsWith('/admin/usuarios')}
+            active={pathname.startsWith("/admin/usuarios")}
           />
         </nav>
       </aside>

@@ -13,6 +13,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "https://cuidarte-nine.vercel.app",
+      "https://cuidartelr.com.ar",
     ],
     credentials: true,
   })
