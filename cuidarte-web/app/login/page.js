@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3001";
+import { apiFetch } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,28 +22,20 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const resp = await fetch(`${API_BASE}/api/usuarios/login`, {
+      const data = await apiFetch("/api/usuarios/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await resp.json();
       console.log("LOGIN RESPONSE:", data);
 
-      if (!resp.ok) throw new Error(data?.error || "Error en login");
-
-      // 👉 PASO CLAVE: forzar cambio de contraseña
       if (data.requiereCambioPassword) {
         router.replace("/cambiar-password");
         return;
       }
 
-      // 👉 Redirección normal por rol
       const rol = data?.rol || "cliente";
       if (rol === "admin") router.replace("/admin");
-      else if (rol === "profesional") router.replace("/panel");
       else router.replace("/panel");
     } catch (e) {
       setErr(e.message);
@@ -60,9 +51,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const resp = await fetch(`${API_BASE}/api/usuarios/forgot-password`, {
+      const resp = await apiFetch("/api/usuarios/forgot-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
 

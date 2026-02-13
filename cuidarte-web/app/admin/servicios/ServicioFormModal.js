@@ -2,6 +2,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import TipoServicioModal from "./TipoServicioModal";
+import { apiFetch } from "@/lib/api";
 
 const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -25,9 +27,12 @@ export default function ServicioFormModal({
   clientes = [],
   profesionales = [],
   tiposServicio = [],
+  onTipoServicioCreated,
+  onTipoServicioUpdated,
+  onTipoServicioDeleted,
 }) {
   const editMode = !!initialData;
-
+  const [importe, setImporte] = useState(0);
   const [form, setForm] = useState({
     tipoServicio: "",
     cliente: "",
@@ -37,17 +42,46 @@ export default function ServicioFormModal({
     horaInicio: "",
     horaFin: "",
     diasSemana: [],
+    estado: "activo",
     indicaciones: "",
+    observacionesInternas: "",
+    importe: Number(importe) || 0,
   });
 
+  const [indefinido, setIndefinido] = useState(false);
   const [err, setErr] = useState("");
+
+  /* ================= MODAL TIPO SERVICIO ================= */
+  const [showTipoModal, setShowTipoModal] = useState(false);
+  const [tipoEditando, setTipoEditando] = useState(null);
+
+  /* ================= AUTOCOMPLETE TIPO SERVICIO ================= */
+  const [queryTipo, setQueryTipo] = useState("");
+  const [showTipos, setShowTipos] = useState(false);
+  const openEditarTipo = (tipo) => {
+    setTipoEditando(tipo);
+    setShowTipoModal(true);
+  };
+  const eliminarTipo = async (id) => {
+    if (!confirm("¿Desactivar este tipo de servicio?")) return;
+
+    await apiFetch(`/api/tipos-servicio/${id}`, {
+      method: "DELETE",
+    });
+
+    onTipoServicioDeleted?.(id);
+  };
+
+  const tiposFiltrados = tiposServicio.filter((t) =>
+    t.nombre.toLowerCase().includes(queryTipo.toLowerCase()),
+  );
 
   /* ================= AUTOCOMPLETE CLIENTE ================= */
   const [queryCliente, setQueryCliente] = useState("");
   const [showClientes, setShowClientes] = useState(false);
 
   const clientesFiltrados = clientes.filter((c) =>
-    c.nombreApellido.toLowerCase().includes(queryCliente.toLowerCase())
+    c.nombreApellido.toLowerCase().includes(queryCliente.toLowerCase()),
   );
 
   /* ================= AUTOCOMPLETE PROFESIONAL ================= */
@@ -57,15 +91,16 @@ export default function ServicioFormModal({
   const profesionalesFiltrados = profesionales.filter((p) =>
     `${p.nombreApellido} ${p.profesion || ""}`
       .toLowerCase()
-      .includes(queryProfesional.toLowerCase())
+      .includes(queryProfesional.toLowerCase()),
   );
 
   /* ================= INIT ================= */
   useEffect(() => {
     if (!open) return;
 
+    const toYMD = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+
     if (initialData) {
-      const toYMD = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
       setForm({
         tipoServicio: initialData.tipoServicio?._id || "",
         cliente: initialData.cliente?._id || "",
@@ -75,8 +110,12 @@ export default function ServicioFormModal({
         horaInicio: initialData.horaInicio || "",
         horaFin: initialData.horaFin || "",
         diasSemana: initialData.diasSemana || [],
+        estado: initialData.estado || "activo",
         indicaciones: initialData.indicaciones || "",
+        observacionesInternas: initialData.observacionesInternas || "",
       });
+      setImporte(initialData.importe ?? 0);
+      setIndefinido(!initialData.fechaFin);
     } else {
       setForm({
         tipoServicio: "",
@@ -87,8 +126,12 @@ export default function ServicioFormModal({
         horaInicio: "",
         horaFin: "",
         diasSemana: [],
+        estado: "activo",
         indicaciones: "",
+        observacionesInternas: "",
       });
+      setIndefinido(false);
+      setImporte(0);
     }
 
     setErr("");
@@ -114,8 +157,37 @@ export default function ServicioFormModal({
       return;
     }
 
+    if (!form.fechaInicio) {
+      setErr("La fecha de inicio es obligatoria.");
+      return;
+    }
+
+    if (!indefinido && form.fechaFin && form.fechaFin < form.fechaInicio) {
+      setErr("La fecha de fin no puede ser menor a la de inicio.");
+      return;
+    }
+
+    if (!form.horaInicio || !form.horaFin) {
+      setErr("Debe completar el horario.");
+      return;
+    }
+
+    if (form.horaFin <= form.horaInicio) {
+      setErr("La hora de fin debe ser posterior a la de inicio.");
+      return;
+    }
+
+    if (!form.diasSemana.length) {
+      setErr("Debe seleccionar al menos un día de atención.");
+      return;
+    }
+
     try {
-      await onSaved(form);
+      await onSaved({
+        ...form,
+        fechaFin: indefinido ? null : form.fechaFin,
+        importe: Number(importe) || 0
+      });
       onClose();
     } catch (e) {
       setErr(e.message);
@@ -126,9 +198,7 @@ export default function ServicioFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
-      <div className="bg-white w-[95vw] max-w-3xl rounded-2xl shadow-2xl max-h-[90vh]
-  flex flex-col animate-[fadeIn_0.2s_ease-out]">
-
+      <div className="bg-white w-[95vw] max-w-3xl rounded-2xl shadow-2xl max-h-[90vh] flex flex-col animate-[fadeIn_0.2s_ease-out]">
         {/* ================= HEADER ================= */}
         <div className="flex justify-between items-center px-6 py-4 border-b">
           <h2 className="text-xl font-semibold text-[#1D4A74]">
@@ -145,7 +215,6 @@ export default function ServicioFormModal({
 
         {/* ================= BODY ================= */}
         <form onSubmit={submit} className="p-6 space-y-6 overflow-y-auto">
-
           {/* CLIENTE / PROFESIONAL */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* CLIENTE */}
@@ -158,7 +227,8 @@ export default function ServicioFormModal({
                 placeholder="Buscar cliente por nombre…"
                 value={
                   form.cliente
-                    ? clientes.find((c) => c._id === form.cliente)?.nombreApellido || ""
+                    ? clientes.find((c) => c._id === form.cliente)
+                        ?.nombreApellido || ""
                     : queryCliente
                 }
                 onChange={(e) => {
@@ -167,9 +237,12 @@ export default function ServicioFormModal({
                   setShowClientes(true);
                 }}
                 onFocus={() => setShowClientes(true)}
+                onBlur={() => {
+                  setTimeout(() => setShowClientes(false), 150);
+                }}
               />
-              {showClientes && queryCliente && (
-                <div className="absolute z-10 w-full mt-1 bg-white border rounded-xl shadow-lg max-h-48 overflow-auto">
+              {showClientes && (
+                <div className="absolute z-10 w-full mt-1 bg-white border rounded-xl shadow-lg max-h-[220px] overflow-y-auto">
                   {clientesFiltrados.length === 0 && (
                     <div className="px-4 py-2 text-sm text-gray-500">
                       Sin resultados
@@ -203,7 +276,8 @@ export default function ServicioFormModal({
                 placeholder="Buscar profesional por nombre…"
                 value={
                   form.profesional
-                    ? profesionales.find((p) => p._id === form.profesional)?.nombreApellido || ""
+                    ? profesionales.find((p) => p._id === form.profesional)
+                        ?.nombreApellido || ""
                     : queryProfesional
                 }
                 onChange={(e) => {
@@ -212,8 +286,11 @@ export default function ServicioFormModal({
                   setShowProfesionales(true);
                 }}
                 onFocus={() => setShowProfesionales(true)}
+                onBlur={() => {
+                  setTimeout(() => setShowProfesionales(false), 150);
+                }}
               />
-              {showProfesionales && queryProfesional && (
+              {showProfesionales && (
                 <div className="absolute z-10 w-full mt-1 bg-white border rounded-xl shadow-lg max-h-48 overflow-auto">
                   {profesionalesFiltrados.length === 0 && (
                     <div className="px-4 py-2 text-sm text-gray-500">
@@ -239,25 +316,147 @@ export default function ServicioFormModal({
             </div>
           </div>
 
-          {/* CONFIGURACIÓN DEL SERVICIO */}
+          {/* SELECTOR SERVICIO */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
-              Configuración del servicio
+              Tipo de servicio
             </h3>
-            <select
-              className={inputBase}
-              value={form.tipoServicio}
-              onChange={(e) =>
-                setForm({ ...form, tipoServicio: e.target.value })
-              }
-            >
-              <option value="">Seleccionar tipo de servicio…</option>
-              {tiposServicio.map((t) => (
-                <option key={t._id} value={t._id}>
-                  {t.nombre}
-                </option>
-              ))}
-            </select>
+
+            <div className="flex gap-2">
+              <div className="relative w-full">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  Tipo de servicio
+                </label>
+
+                <div className="flex gap-2">
+                  <input
+                    className={inputBase}
+                    placeholder="Seleccionar tipo de servicio…"
+                    value={
+                      form.tipoServicio
+                        ? tiposServicio.find((t) => t._id === form.tipoServicio)
+                            ?.nombre || ""
+                        : queryTipo
+                    }
+                    onChange={(e) => {
+                      setQueryTipo(e.target.value);
+                      setForm({ ...form, tipoServicio: "" });
+                      setShowTipos(true);
+                    }}
+                    onFocus={() => setShowTipos(true)}
+                    onBlur={() => setTimeout(() => setShowTipos(false), 150)}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowTipoModal(true)}
+                    className="
+                      px-4 rounded-xl
+                      bg-[#04BF8A] text-white
+                      hover:bg-[#00a884]
+                      transition
+                    "
+                    title="Crear nuevo tipo"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {showTipos && (
+                  <div
+                    className="
+                      absolute z-10 w-full mt-1
+                      bg-white border rounded-xl shadow-lg
+                      max-h-[220px] overflow-y-auto
+                    "
+                  >
+                    {tiposFiltrados.length === 0 && (
+                      <div className="px-4 py-2 text-sm text-gray-500">
+                        Sin resultados
+                      </div>
+                    )}
+
+                    {tiposFiltrados.map((t) => (
+                      <div
+                        key={t._id}
+                        className="
+                        flex items-center justify-between
+                        px-4 py-2
+                        hover:bg-[#1D4A74]/10
+                        transition
+                        group
+                      "
+                      >
+                        {/* SELECT */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm({ ...form, tipoServicio: t._id });
+                            setQueryTipo("");
+                            setShowTipos(false);
+                          }}
+                          className="
+                            flex items-center gap-2
+                            text-left flex-1
+                            text-[#1D4A74]
+                          "
+                        >
+                          <span
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: t.color }}
+                          />
+                          <span>{t.nombre}</span>
+                        </button>
+
+                        {/* ACTIONS */}
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                          {/* EDIT */}
+                          <button
+                            type="button"
+                            onClick={() => openEditarTipo(t)}
+                            className="
+                              p-1 rounded
+                              text-blue-600
+                              hover:bg-blue-50
+                            "
+                            title="Editar tipo"
+                          >
+                            ✏️
+                          </button>
+
+                          {/* DELETE */}
+                          <button
+                            type="button"
+                            onClick={() => eliminarTipo(t._id)}
+                            className="
+                              p-1 rounded
+                              text-red-600
+                              hover:bg-red-50
+                            "
+                            title="Desactivar tipo"
+                          >
+                            🗑
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {editMode && (
+              <select
+                className={inputBase}
+                value={form.estado}
+                onChange={(e) => setForm({ ...form, estado: e.target.value })}
+              >
+                <option value="activo">Activo</option>
+                <option value="pausado">Pausado</option>
+                <option value="finalizado">Finalizado</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            )}
           </div>
 
           {/* PERÍODO */}
@@ -267,35 +466,51 @@ export default function ServicioFormModal({
             </h3>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <label className="text-xs text-gray-500">Fecha inicio</label>
-                <input type="date" className={inputBase}
-                  value={form.fechaInicio}
-                  onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500">Fecha fin</label>
-                <input type="date" className={inputBase}
+              <input
+                type="date"
+                className={inputBase}
+                value={form.fechaInicio}
+                onChange={(e) =>
+                  setForm({ ...form, fechaInicio: e.target.value })
+                }
+              />
+
+              {!indefinido && (
+                <input
+                  type="date"
+                  className={inputBase}
                   value={form.fechaFin}
-                  onChange={(e) => setForm({ ...form, fechaFin: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, fechaFin: e.target.value })
+                  }
                 />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500">Hora inicio</label>
-                <input type="time" className={inputBase}
-                  value={form.horaInicio}
-                  onChange={(e) => setForm({ ...form, horaInicio: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500">Hora fin</label>
-                <input type="time" className={inputBase}
-                  value={form.horaFin}
-                  onChange={(e) => setForm({ ...form, horaFin: e.target.value })}
-                />
-              </div>
+              )}
+
+              <input
+                type="time"
+                className={inputBase}
+                value={form.horaInicio}
+                onChange={(e) =>
+                  setForm({ ...form, horaInicio: e.target.value })
+                }
+              />
+
+              <input
+                type="time"
+                className={inputBase}
+                value={form.horaFin}
+                onChange={(e) => setForm({ ...form, horaFin: e.target.value })}
+              />
             </div>
+
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={indefinido}
+                onChange={(e) => setIndefinido(e.target.checked)}
+              />
+              Servicio sin fecha de finalización
+            </label>
           </div>
 
           {/* DÍAS */}
@@ -303,9 +518,6 @@ export default function ServicioFormModal({
             <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
               Días de atención
             </h3>
-            <p className="text-xs text-gray-500">
-              Seleccioná los días de la semana en los que se presta el servicio
-            </p>
 
             <div className="flex flex-wrap gap-2">
               {DIAS.map((d, i) => (
@@ -313,35 +525,52 @@ export default function ServicioFormModal({
                   type="button"
                   key={i}
                   onClick={() => toggleDia(i)}
-                  className={`
-                    px-3 py-1.5 rounded-full border transition
-                    ${
-                      form.diasSemana.includes(i)
-                        ? "bg-[#04BF8A] text-white border-[#04BF8A]"
-                        : "bg-white text-[#1D4A74] border-gray-300 hover:bg-gray-50"
-                    }
-                  `}
+                  className={`px-3 py-1.5 rounded-full border transition ${
+                    form.diasSemana.includes(i)
+                      ? "bg-[#04BF8A] text-white border-[#04BF8A]"
+                      : "bg-white text-[#1D4A74] border-gray-300 hover:bg-gray-50"
+                  }`}
                 >
                   {d}
                 </button>
               ))}
             </div>
           </div>
-
-          {/* INDICACIONES */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
-              Indicaciones
-            </h3>
-            <textarea
-              className={`${inputBase} min-h-[90px]`}
-              placeholder="Indicaciones adicionales para el profesional…"
-              value={form.indicaciones}
-              onChange={(e) =>
-                setForm({ ...form, indicaciones: e.target.value })
-              }
+          <div>
+            <label className="text-sm font-medium text-gray-700">
+              Importe cotizado
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={importe}
+              onChange={(e) => setImporte(e.target.value)}
+              className={inputBase} 
+              placeholder="0"
             />
           </div>
+
+          {/* INDICACIONES */}
+          <textarea
+            className={`${inputBase} min-h-[90px]`}
+            placeholder="Indicaciones adicionales para el profesional…"
+            value={form.indicaciones}
+            onChange={(e) => setForm({ ...form, indicaciones: e.target.value })}
+          />
+
+          {/* OBSERVACIONES INTERNAS */}
+          <textarea
+            className={`${inputBase} min-h-[90px]`}
+            placeholder="Observaciones internas (solo administración)…"
+            value={form.observacionesInternas}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                observacionesInternas: e.target.value,
+              })
+            }
+          />
 
           {err && <p className="text-red-600 text-sm">{err}</p>}
 
@@ -350,37 +579,36 @@ export default function ServicioFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="
-                px-5 py-2.5 rounded-xl
-                border border-gray-300
-                bg-gray-50
-                text-gray-700
-                hover:bg-gray-100
-                transition
-              "
+              className="px-5 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 transition"
             >
               Cancelar
             </button>
 
             <button
               type="submit"
-              className="
-                px-5 py-2.5 rounded-xl
-                bg-[#1D4A74]
-                text-white font-medium
-                shadow-md
-                hover:bg-[#163a5c]
-                hover:shadow-lg
-                active:scale-[0.98]
-                transition
-              "
+              className="px-5 py-2.5 rounded-xl bg-[#1D4A74] text-white font-medium shadow-md hover:bg-[#163a5c] hover:shadow-lg active:scale-[0.98] transition"
             >
               {editMode ? "Guardar cambios" : "Crear servicio"}
             </button>
           </div>
         </form>
+        <TipoServicioModal
+          open={showTipoModal}
+          initialData={tipoEditando}
+          onClose={() => {
+            setShowTipoModal(false);
+            setTipoEditando(null);
+          }}
+          onCreated={(nuevo) => {
+            onTipoServicioCreated?.(nuevo);
+            setForm((f) => ({ ...f, tipoServicio: nuevo._id }));
+          }}
+          onUpdated={(actualizado) => {
+            onTipoServicioUpdated?.(actualizado);
+            setForm((f) => ({ ...f, tipoServicio: actualizado._id }));
+          }}
+        />
       </div>
     </div>
   );
 }
-

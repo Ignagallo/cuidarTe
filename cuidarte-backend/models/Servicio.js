@@ -9,6 +9,12 @@ const ServicioSchema = new Schema({
     required: true
   },
 
+  importe: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+
   estado: {
     type: String,
     enum: ['activo', 'pausado', 'finalizado', 'cancelado'],

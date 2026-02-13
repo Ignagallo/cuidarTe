@@ -51,7 +51,7 @@ export default function AdminLayout({ children }) {
       <aside
         style={{ width: open ? 256 : COLLAPSED_WIDTH }}
         className={`
-          hidden lg:block
+          hidden lg:block fixed
           top-0 left-0 h-screen
           bg-[#1D4A74] text-white
           transition-all duration-300 ease-in-out
@@ -95,6 +95,13 @@ export default function AdminLayout({ children }) {
             label="Servicios"
             open={open}
             active={pathname.startsWith("/admin/servicios")}
+          />
+          <NavItem
+            href="/admin/coberturas"
+            icon="🛡"
+            label="Coberturas"
+            open={open}
+            active={pathname.startsWith("/admin/coberturas")}
           />
           <NavItem
             href="/admin/usuarios"
@@ -167,6 +174,11 @@ export default function AdminLayout({ children }) {
           <MobileNavItem
             href="/admin/servicios"
             label="Servicios"
+            onClick={() => setMobileOpen(false)}
+          />
+          <MobileNavItem
+            href="/admin/coberturas"
+            label="Coberturas"
             onClick={() => setMobileOpen(false)}
           />
           <MobileNavItem

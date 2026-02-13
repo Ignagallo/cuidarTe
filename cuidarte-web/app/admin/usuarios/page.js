@@ -280,7 +280,13 @@ export default function UsuariosAdminPage() {
             <div className="flex flex-wrap gap-2 pt-2 border-t">
               <button
                 onClick={() => openEdit(u)}
-                className="px-3 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+                className="
+            flex-1 px-2 rounded-lg
+            bg-blue-100 text-blue-700 font-medium
+            hover:bg-blue-200
+            active:scale-[0.97]
+            transition
+          "
               >
                 ✏️ Editar
               </button>
@@ -288,7 +294,7 @@ export default function UsuariosAdminPage() {
               {u.activo && (
                 <button
                   onClick={() => desactivar(u._id)}
-                  className="px-3 py-1 rounded-md text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 transition"
+                  className="flex-1 px-2 rounded-lg bg-red-100 text-red-700 font-medium active:scale-[0.97] hover:bg-red-200 transition"
                 >
                   ⛔ Desactivar
                 </button>
@@ -296,7 +302,7 @@ export default function UsuariosAdminPage() {
 
               <button
                 onClick={() => resetPassword(u)}
-                className="px-3 py-1 rounded-md text-sm font-medium bg-orange-100 text-orange-700 hover:bg-orange-200 transition"
+                className="flex-1 px-2 rounded-lg font-medium bg-orange-100 text-orange-700 hover:bg-orange-200 active:scale-[0.97] transition"
               >
                 🔑 Resetear contraseña
               </button>

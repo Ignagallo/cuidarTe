@@ -34,6 +34,8 @@ app.use("/api/servicios", require("./routes/servicios"));
 app.use("/api/upload", require("./routes/upload"));
 app.use("/api/asignaciones", require("./routes/asignaciones"));
 app.use("/api/tipos-servicio", require("./routes/tiposServicio"));
+app.use("/api/agenda", require("./routes/agenda"));
+app.use("/api/coberturas", require("./routes/coberturas"));
 
 // Inicio del servidor
 async function start() {
