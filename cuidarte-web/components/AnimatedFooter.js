@@ -51,7 +51,7 @@ export default function AnimatedFooter() {
         <div>
           <h4 className="text-lg font-semibold mb-4">Seguinos</h4>
           <div className="flex gap-5">
-            <a href="https://www.instagram.com" target="_blank">
+            <a href="https://www.instagram.com/cuidarte.lr/" target="_blank">
               <Image
                 src="/instagram.png"
                 alt="Instagram de Cuidarte"
@@ -60,7 +60,7 @@ export default function AnimatedFooter() {
                 className="h-8 w-8 hover:scale-115 transition h-20 w-auto shrink-0 object-contain"
               />
             </a>
-            <a href="https://www.facebook.com" target="_blank">
+            <a href="https://www.facebook.com/profile.php?id=100090937053452&locale=es_LA" target="_blank">
               <Image
                 src="/facebook.png"
                 alt="Facebook de Cuidarte"
@@ -69,6 +69,7 @@ export default function AnimatedFooter() {
                 className="h-8 w-8 hover:scale-115 transition h-20 w-auto shrink-0 object-contain"
               />
             </a>
+            {/*
             <a href="https://www.linkedin.com" target="_blank">
               <Image
                 src="/linkedin.png"
@@ -78,7 +79,8 @@ export default function AnimatedFooter() {
                 className="h-8 w-8 hover:scale-115 transition h-20 w-auto shrink-0 object-contain"
               />
             </a>
-            <a href="mailto:contacto@cuidarte.com">
+            */}
+            <a href="mailto:contacto@cuidartelr.com.ar">
               <Image
                 src="/gmail.png"
                 alt="Correo de Cuidarte"

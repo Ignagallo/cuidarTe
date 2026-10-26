@@ -15,11 +15,11 @@ const montserrat = Montserrat({
 const PROFESIONALES = [
   {
     id: 1,
-    nombre: "María Gómez",
+    nombre: "Agustina Arias Bracamonte",
     especialidad: "Enfermería domiciliaria",
     descripcion:
-      "Más de 10 años de experiencia en cuidados clínicos y acompañamiento.",
-    fotoUrl: "/acompanante-terapeutico1.jpg",
+      "Enfermera domiciliaria con un enfoque integral hacia sus pacientes",
+    fotoUrl: "/enf1.jpg",
   },
   {
     id: 2,
@@ -31,7 +31,7 @@ const PROFESIONALES = [
   {
     id: 3,
     nombre: "Laura Fernández",
-    especialidad: "Acompañamiento terapéutico",
+    especialidad: "Terapia ocupacional",
     descripcion: "Especialista en adultos mayores y salud mental.",
     fotoUrl: "/cuidado1.jpg",
   },
