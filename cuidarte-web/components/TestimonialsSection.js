@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion, useAnimation, useReducedMotion } from 'framer-motion';
+import Reveal from './Reveal';
 
 /* =========================
    DATA
@@ -31,48 +32,49 @@ const testimonials = [
 
 function TestimonialCard({ item, index }) {
   const controls = useAnimation();
-  const [isHovered, setIsHovered] = useState(false);
-
-  // Animación tipo campanita
-  const startBell = () => {
-    controls.start({
-      rotateZ: [0, -2, 2, -2, 0],
-      transition: {
-        duration: 2,
-        ease: 'easeInOut',
-        repeat: Infinity,
-        delay: index * 0.4,
-      },
-    });
-  };
-
-  const stopBell = () => {
-    controls.stop();
-    controls.set({ rotateZ: 0 });
-  };
+  const [isActive, setIsActive] = useState(false);
+  const prefersReducedMotion = useReducedMotion() ?? true;
 
   useEffect(() => {
-    startBell();
-  }, []);
+    if (prefersReducedMotion || isActive) {
+      controls.stop();
+      controls.start({ rotateZ: 0, transition: { duration: prefersReducedMotion ? 0 : 0.18, ease: 'easeOut' } });
+      return () => controls.stop();
+    }
+
+    controls.start({
+      rotateZ: [0, -0.6, 0.6, 0],
+      transition: {
+        duration: 5,
+        ease: 'easeInOut',
+        repeat: Infinity,
+        delay: index * 0.3,
+      },
+    });
+    return () => controls.stop();
+  }, [controls, index, isActive, prefersReducedMotion]);
 
   return (
     <motion.div
-      className="h-80"
+      tabIndex={0}
+      role="group"
+      aria-label={`Testimonio de ${item.name}, ${item.role}: ${item.text}`}
       animate={controls}
-      onMouseEnter={() => {
-        stopBell();
-        setIsHovered(true);
+      onMouseEnter={() => setIsActive(true)}
+      onMouseLeave={(event) => {
+        if (!event.currentTarget.contains(document.activeElement)) setIsActive(false);
       }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        startBell();
+      onFocus={() => setIsActive(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setIsActive(false);
       }}
+      className="h-80 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A] focus-visible:ring-offset-4"
     >
       {/* CONTENEDOR 3D */}
       <motion.div
         className="relative h-full w-full"
-        animate={{ rotateY: isHovered ? 180 : 0 }}
-        transition={{ duration: 0.6, ease: 'easeInOut' }}
+        animate={{ rotateY: isActive && !prefersReducedMotion ? 180 : 0 }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.5, ease: [0.22, 1, 0.36, 1] }}
         style={{
           transformStyle: 'preserve-3d',
           perspective: 1200,
@@ -90,6 +92,7 @@ function TestimonialCard({ item, index }) {
             flex flex-col justify-end
           "
           style={{ backfaceVisibility: 'hidden' }}
+          aria-hidden={isActive}
         >
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#1D4A74]/10 to-transparent" />
 
@@ -116,6 +119,7 @@ function TestimonialCard({ item, index }) {
             transform: 'rotateY(180deg)',
             backfaceVisibility: 'hidden',
           }}
+          aria-hidden={!isActive}
         >
           <p className="text-[#04BF8A] leading-relaxed">
             “{item.text}”
@@ -138,28 +142,26 @@ export default function TestimonialsSection() {
   return (
     <section
       id="testimonios"
-      className="bg-white py-28 border-t border-[#1D4A74]/20"
+      className="scroll-mt-24 border-t border-[#1D4A74]/20 bg-white py-20 sm:py-24"
     >
       <div className="mx-auto max-w-7xl px-4">
 
-        <div className="max-w-2xl">
+        <Reveal className="max-w-2xl">
           <h2 className="text-2xl md:text-3xl font-semibold text-[#1D4A74]">
             Testimonios reales
           </h2>
           <p className="mt-3 text-[#1D4A74]/80">
             La experiencia de quienes ya confían en cuidarTE.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="mt-14 grid gap-8 md:grid-cols-3">
+        <ul className="mt-14 grid gap-8 md:grid-cols-3">
           {testimonials.map((item, index) => (
-            <TestimonialCard
-              key={index}
-              item={item}
-              index={index}
-            />
+            <Reveal as="li" key={item.name} delay={index * 0.08}>
+              <TestimonialCard item={item} index={index} />
+            </Reveal>
           ))}
-        </div>
+        </ul>
 
       </div>
     </section>

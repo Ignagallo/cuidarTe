@@ -1,14 +1,20 @@
 module.exports = function requireRole(...roles) {
-  return (req, res, next) => {
+  const authorize = (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: 'No autenticado' });
     }
 
-    if (!roles.includes(req.user.rol)) {
+    const userRoles = req.user.rol === "superadmin"
+      ? ["superadmin", "admin"]
+      : [req.user.rol];
+
+    if (!roles.some((role) => userRoles.includes(role))) {
       return res.status(403).json({ message: 'No autorizado' });
     }
 
     next();
   };
+  authorize.allowedRoles = [...roles];
+  return authorize;
 };
 

@@ -1,6 +1,7 @@
 //cuidarte-backend/middleware/auth.js
 const jwt = require("jsonwebtoken");
 const Usuario = require("../models/Usuario");
+const isTokenVersionCurrent = require("../utils/isTokenVersionCurrent");
 
 module.exports = async function auth(req, res, next) {
   try {
@@ -13,6 +14,9 @@ module.exports = async function auth(req, res, next) {
 
     const user = await Usuario.findById(payload.id);
     if (!user || !user.activo) {
+      return res.status(401).json({ error: "No autenticado" });
+    }
+    if (!isTokenVersionCurrent(payload.tokenVersion, user.tokenVersion)) {
       return res.status(401).json({ error: "No autenticado" });
     }
 

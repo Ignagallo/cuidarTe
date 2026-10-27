@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import GestionPagosModal from "./GestionPagosModal";
 import EstadoCoberturaBadge from "./EstadoCoberturaBadge";
+import DeletePermanentlyButton from "@/components/DeletePermanentlyButton";
 
 
 export default function CoberturasPage() {
@@ -13,14 +14,18 @@ export default function CoberturasPage() {
   const [selectedServicio, setSelectedServicio] = useState(null);
   const [coberturaActiva, setCoberturaActiva] = useState(null);
   const [search, setSearch] = useState("");
+  const [estadoFinanciero, setEstadoFinanciero] = useState("todos");
+  const [estadoServicio, setEstadoServicio] = useState("todos");
 
   const load = async () => {
     try {
       const data = await apiFetch("/api/coberturas");
       setCoberturas(Array.isArray(data) ? data : []);
+      return true;
     } catch (e) {
       console.error(e);
       setCoberturas([]);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -33,8 +38,15 @@ export default function CoberturasPage() {
     const servicio = c.servicio?.tipoServicio?.nombre?.toLowerCase() || "";
 
     const estado = c.estado?.toLowerCase() || "";
+    const searchMatches = cliente.includes(q) || servicio.includes(q) || estado.includes(q);
+    const financialStateMatches = estadoFinanciero === "todos" || c.estado === estadoFinanciero;
+    const outstandingBalance = Number(c.totalServicio || 0) > Number(c.totalPagado || 0);
+    const operatingStateMatches =
+      estadoServicio === "todos" ||
+      c.servicio?.estado === estadoServicio ||
+      outstandingBalance;
 
-    return cliente.includes(q) || servicio.includes(q) || estado.includes(q);
+    return searchMatches && financialStateMatches && operatingStateMatches;
   });
 
   useEffect(() => {
@@ -47,15 +59,16 @@ export default function CoberturasPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <h1 className="text-2xl font-bold text-[#1D4A74]">
         Coberturas de servicios
       </h1>
-      {/* BUSCADOR */}
-      <div className="flex-1">
+      <div className="flex flex-1 flex-col gap-3 sm:flex-row">
         <input
           type="text"
           placeholder="Buscar por cliente, servicio o estado…"
+          aria-label="Buscar coberturas"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full
@@ -66,8 +79,40 @@ export default function CoberturasPage() {
           focus:ring-2 focus:ring-[#04BF8A]
           focus:border-[#04BF8A]"
         />
+        <div>
+          <label className="sr-only" htmlFor="filtro-estado-financiero">Filtrar por estado financiero</label>
+          <select
+            id="filtro-estado-financiero"
+            value={estadoFinanciero}
+            onChange={(e) => setEstadoFinanciero(e.target.value)}
+            className="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-[#1D4A74] focus:outline-none focus:ring-2 focus:ring-[#04BF8A]"
+          >
+            <option value="todos">Todos los estados financieros</option>
+            <option value="impago">Impago</option>
+            <option value="parcial">Parcial</option>
+            <option value="pago">Pago</option>
+          </select>
+        </div>
+        <div>
+          <label className="sr-only" htmlFor="filtro-estado-operativo">Filtrar por estado del servicio</label>
+          <select
+            id="filtro-estado-operativo"
+            value={estadoServicio}
+            onChange={(e) => setEstadoServicio(e.target.value)}
+            className="min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-[#1D4A74] focus:outline-none focus:ring-2 focus:ring-[#04BF8A]"
+          >
+            <option value="todos">Todos los estados del servicio</option>
+            <option value="activo">Activo</option>
+            <option value="pausado">Pausado</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
       </div>
       </div>
+      </div>
+      {estadoServicio !== "todos" && <p role="note" className="text-sm text-slate-600">Las coberturas con saldo pendiente también se muestran aunque el servicio tenga otro estado operativo.</p>}
+      <p className="text-sm text-slate-500">Mostrando {filteredCoberturas.length} de {coberturas.length} coberturas</p>
       {coberturas.length === 0 && (
         <p className="text-gray-500">No hay coberturas registradas</p>
       )}
@@ -78,6 +123,7 @@ export default function CoberturasPage() {
             <tr>
               <th className="px-4 py-2 text-left">Servicio</th>
               <th className="px-4 py-2 text-left">Cliente</th>
+              <th className="px-4 py-2 text-center">Estado del servicio</th>
               <th className="px-4 py-2 text-right">Total</th>
               <th className="px-4 py-2 text-right">Pagado</th>
               <th className="px-4 py-2 text-center">Estado</th>
@@ -98,6 +144,7 @@ export default function CoberturasPage() {
                 <td className="px-4 py-2">
                   {c.servicio?.cliente?.nombreApellido}
                 </td>
+                <td className="px-4 py-2 text-center"><EstadoServicioBadge estado={c.servicio?.estado} /></td>
 
                 <td className="px-4 py-2 text-right">${c.totalServicio}</td>
 
@@ -108,6 +155,7 @@ export default function CoberturasPage() {
                 </td>
 
                 <td className="px-4 py-2 text-center">
+                  <div className="inline-flex items-center gap-2">
                   <button
                     onClick={() => setCoberturaActiva(c)}
                     className="px-2 py-1 rounded-xl border text-sm
@@ -118,6 +166,8 @@ export default function CoberturasPage() {
                   >
                     Gestionar pagos
                   </button>
+                  <DeletePermanentlyButton label="Eliminar cobertura" recordLabel={`Cobertura de ${c.servicio?.tipoServicio?.nombre || "servicio"} — ${c.servicio?.cliente?.nombreApellido || c._id.slice(-6)}`} endpoint={`/api/coberturas/${c._id}/permanent`} onDeleted={load} />
+                  </div>
                 </td>
               </tr>
             ))}
@@ -142,7 +192,10 @@ export default function CoberturasPage() {
                   {c.servicio?.cliente?.nombreApellido}
                 </p>
               </div>
-                <EstadoCoberturaBadge estado={c.estado} />
+                <div className="flex flex-col items-end gap-1">
+                  <EstadoCoberturaBadge estado={c.estado} />
+                  <EstadoServicioBadge estado={c.servicio?.estado} />
+                </div>
             </div>
             <hr className="border-gray-200" />
             {/* INFO */}
@@ -184,9 +237,12 @@ export default function CoberturasPage() {
             >
               Gestionar pagos
             </button>
+            <DeletePermanentlyButton label="Eliminar cobertura" recordLabel={`Cobertura de ${c.servicio?.tipoServicio?.nombre || "servicio"} — ${c.servicio?.cliente?.nombreApellido || c._id.slice(-6)}`} endpoint={`/api/coberturas/${c._id}/permanent`} onDeleted={load} />
           </div>
         ))}
       </div>
+
+      {filteredCoberturas.length === 0 && coberturas.length > 0 && <p className="rounded-xl border border-slate-200 bg-white p-4 text-slate-600">No hay coberturas que coincidan con estos filtros.</p>}
 
       {coberturaActiva && (
         <GestionPagosModal
@@ -199,5 +255,24 @@ export default function CoberturasPage() {
         />
       )}
     </div>
+  );
+}
+
+function EstadoServicioBadge({ estado }) {
+  if (!estado) {
+    return (
+      <span className="text-xs text-slate-500">Servicio no disponible</span>
+    );
+  }
+  const classes = {
+    activo: "bg-emerald-50 text-emerald-800",
+    pausado: "bg-amber-50 text-amber-800",
+    finalizado: "bg-slate-100 text-slate-700",
+    cancelado: "bg-rose-50 text-rose-800",
+  };
+  return (
+    <span className={`rounded-full px-2 py-1 text-xs font-medium ${classes[estado] || "bg-slate-100 text-slate-700"}`}>
+      Servicio {estado}
+    </span>
   );
 }

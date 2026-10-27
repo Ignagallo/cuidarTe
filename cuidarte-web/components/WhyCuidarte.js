@@ -1,12 +1,7 @@
 "use client";
 import Image from "next/image";
-import { Montserrat } from "next/font/google";
-import { useEffect, useRef, useState } from "react";
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-});
+import { useState } from "react";
+import Reveal from "./Reveal";
 
 const MOTIVOS = [
   {
@@ -43,43 +38,18 @@ const MOTIVOS = [
 
 export default function WhyCuidarte() {
   const [openId, setOpenId] = useState(null);
-  const sectionRef = useRef(null);
-  const [visible, setVisible] = useState(false);
-  const toggle = (id) => {
-    setOpenId(openId === id ? null : id);
-  };
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setVisible(entry.isIntersecting);
-      },
-      {
-        threshold: 0.35,
-      }
-    );
-
-    if (sectionRef.current) observer.observe(sectionRef.current);
-
-    return () => {
-      if (sectionRef.current) observer.unobserve(sectionRef.current);
-    };
-  }, []);
   return (
-    <section
-      ref={sectionRef}
+    <Reveal
+      as="section"
       id="whyCuidarte"
-      className={`bg-[#1D4A74] text-white border-t border-white/20 py-4 md:py-8 flex items-center
-    transition-all duration-700 ease-out
-    ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
-  `}
+      className="scroll-mt-24 flex items-center border-t border-white/20 bg-[#1D4A74] py-4 text-white md:py-8"
     >
       <div className="mx-auto max-w-7xl px-4 py-8 w-full">
         <div className="grid gap-12 md:grid-cols-5 items-center">
           {/* IZQUIERDA */}
           <div className="md:col-span-2">
             <h2
-              className={`text-2xl md:text-3xl font-semibold text-[#04BF8A] ${montserrat.className}`}
+              className="text-2xl font-semibold text-[#04BF8A] md:text-3xl"
             >
               ¿Por qué elegir Cuidarte?
             </h2>
@@ -93,8 +63,8 @@ export default function WhyCuidarte() {
                 src="/porquecuidarte2.jpg" // imagen desde public
                 alt="Cuidado profesional en el hogar"
                 fill
+                sizes="(max-width: 768px) 100vw, 40vw"
                 className="object-cover"
-                priority
               />
               <div className="absolute inset-0 bg-black/20" />
             </div>
@@ -117,11 +87,6 @@ export default function WhyCuidarte() {
                                 ? "bg-[#04BF8A] border-[#04BF8A]"
                                 : "bg-white/5 border-white/20"
                             }
-                            ${
-                              visible
-                                ? "opacity-100 translate-y-0"
-                                : "opacity-0 translate-y-6"
-                            }
                         `}
                   >
                     <button
@@ -134,7 +99,7 @@ export default function WhyCuidarte() {
                         `}
                       aria-expanded={isOpen}
                     >
-                      <span className={`font-medium ${montserrat.className}`}>
+                      <span className="font-medium">
                         {item.title}
                       </span>
                       <span
@@ -174,6 +139,6 @@ export default function WhyCuidarte() {
           </div>
         </div>
       </div>
-    </section>
+    </Reveal>
   );
 }

@@ -45,40 +45,17 @@ async function start() {
     });
 
     console.log("✅ Conectado a MongoDB");
-    console.log(
-      "🔎 Base de datos:",
-      mongoose.connection.name,
-      "• Host:",
-      mongoose.connection.host
-    );
+    console.log("🔎 Base de datos conectada");
 
-    // Crear admin si no existe
-    const Usuario = require("./models/Usuario");
-    const adminEmail = process.env.ADMIN_EMAIL || "admin@cuidarte.com";
-    const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-
-    const admin = await Usuario.findOne({ email: adminEmail });
-
-    if (!admin) {
-      await Usuario.create({
-        nombre: "Admin",
-        email: adminEmail,
-        password: adminPassword,
-        rol: "admin",
-      });
-      console.log("✅ Admin creado");
-    } else if (admin.rol !== "admin") {
-      admin.rol = "admin";
-      await admin.save();
-      console.log("🔧 Rol admin corregido");
-    }
+    // El arranque no crea cuentas ni modifica roles; la provisión se realiza
+    // por un procedimiento administrativo explícito.
 
     const PORT = process.env.PORT || 3001;
     app.listen(PORT, () =>
       console.log(`🚀 API corriendo en puerto ${PORT}`)
     );
   } catch (e) {
-    console.error("❌ Error al iniciar servidor:", e.message);
+    console.error("❌ Error al iniciar servidor");
     process.exit(1);
   }
 }

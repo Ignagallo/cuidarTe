@@ -1,120 +1,42 @@
 "use client";
 
+import Reveal from "./Reveal";
 import {
   FaWhatsapp,
   FaInstagram,
   FaFacebook,
   FaEnvelope,
 } from "react-icons/fa";
-import AnimateSection from "./AnimateSection";
-import { fadeLeft, fadeRight } from "./animations";
 
 export default function ContactSection() {
   return (
     <section
       id="contacto"
-      className="bg-[#1D4A74] text-white py-24 border-t border-white/20"
+      className="scroll-mt-24 border-t border-slate-200 bg-white py-16 text-[#1D4A74] sm:py-20"
     >
-      <div className="mx-auto max-w-7xl px-4 grid md:grid-cols-2 gap-12 items-start">
-        {/* COLUMNA IZQUIERDA */}
-        <AnimateSection variant={fadeLeft}>
-          <div>
-            <h2 className="text-2xl md:text-3xl font-semibold text-[#04BF8A]">
-              Contactanos
-            </h2>
-
-            <p className="mt-4 text-white/90 max-w-md">
-              Si tenés dudas, necesitás asesoramiento o querés sumar un
-              servicio, nuestro equipo está listo para ayudarte.
-            </p>
-
-            {/* REDES */}
-            <div className="mt-8 space-y-5">
-              <a
-                href="https://wa.link/v2l67z"
-                target="_blank"
-                className="group flex items-center gap-4 transition-transform hover:translate-x-1"
-              >
-                <FaWhatsapp className="text-3xl md:text-4xl text-white/70 group-hover:text-[#25D366] transition-colors" />
-                <span className="text-lg md:text-xl font-medium text-white/90 group-hover:text-[#25D366] transition-colors">
-                  WhatsApp
-                </span>
-              </a>
-
-              <a
-                href="https://www.instagram.com/"
-                target="_blank"
-                className="group flex items-center gap-4 transition-transform hover:translate-x-1"
-              >
-                <FaInstagram className="text-3xl md:text-4xl text-white/70 group-hover:text-pink-500 transition-colors" />
-                <span className="text-lg md:text-xl font-medium text-white/90 group-hover:text-pink-500 transition-colors">
-                  Instagram
-                </span>
-              </a>
-
-              <a
-                href="https://www.facebook.com/"
-                target="_blank"
-                className="group flex items-center gap-4 transition-transform hover:translate-x-1"
-              >
-                <FaFacebook className="text-3xl md:text-4xl text-white/70 group-hover:text-[#1877F2] transition-colors" />
-                <span className="text-lg md:text-xl font-medium text-white/90 group-hover:text-[#1877F2] transition-colors">
-                  Facebook
-                </span>
-              </a>
-
-              <a
-                href="mailto:contacto@cuidarte.com"
-                className="group flex items-center gap-4 transition-transform hover:translate-x-1"
-              >
-                <FaEnvelope className="text-3xl md:text-4xl text-white/70 group-hover:text-[#EA4335] transition-colors" />
-                <span className="text-lg md:text-xl font-medium text-white/90 group-hover:text-[#EA4335] transition-colors">
-                  contacto@cuidarte.com
-                </span>
-              </a>
-            </div>
+      <Reveal className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 md:grid-cols-[1fr_0.85fr] md:items-center lg:px-8">
+        <div className="max-w-xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-emerald-700">Estamos para ayudarte</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Hablemos de lo que necesitás.</h2>
+          <p className="mt-4 leading-7 text-slate-600">Si tenés dudas, necesitás asesoramiento o querés sumar un servicio, contactá al equipo de Cuidarte.</p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <a href="https://wa.link/v2l67z" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#1D4A74] px-5 py-3 font-semibold text-white transition-[transform,background-color,box-shadow] duration-200 motion-safe:hover:-translate-y-0.5 hover:bg-[#163a5c] hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A] focus-visible:ring-offset-2">
+              <FaWhatsapp aria-hidden="true" /> Escribir por WhatsApp
+            </a>
+            <a href="mailto:contacto@cuidartelr.com.ar" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-slate-300 px-5 py-3 font-semibold text-[#1D4A74] transition-[transform,background-color] duration-200 motion-safe:hover:-translate-y-0.5 hover:bg-slate-50 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]">
+              <FaEnvelope aria-hidden="true" /> Enviar un email
+            </a>
           </div>
-        </AnimateSection>
+        </div>
 
-        {/* COLUMNA DERECHA – FORMULARIO */}
-        <AnimateSection variant={fadeRight}>
-          <form className="bg-white rounded-2xl p-6 md:p-8 text-[#1D4A74] shadow-lg space-y-4">
-            <div>
-              <label className="text-sm font-medium">Nombre</label>
-              <input
-                type="text"
-                className="mt-1 w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#04BF8A]"
-                placeholder="Tu nombre"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Email</label>
-              <input
-                type="email"
-                className="mt-1 w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#04BF8A]"
-                placeholder="tu@email.com"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Mensaje</label>
-              <textarea
-                rows={4}
-                className="mt-1 w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#04BF8A]"
-                placeholder="Contanos en qué podemos ayudarte"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full mt-4 rounded-xl bg-[#04BF8A] py-3 text-white font-medium hover:bg-[#00A884] transition"
-            >
-              Enviar mensaje
-            </button>
-          </form>
-        </AnimateSection>
-      </div>
+        <div className="rounded-2xl border border-slate-200 bg-[#F4F7F5] p-5 sm:p-7">
+          <h3 className="font-semibold text-[#1D4A74]">También podés encontrarnos</h3>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
+            <li><a href="https://www.instagram.com/cuidarte.lr/" target="_blank" rel="noopener noreferrer" className="group flex min-h-12 items-center gap-3 rounded-xl bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:text-[#1D4A74] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]"><FaInstagram aria-hidden="true" className="text-xl text-pink-600" />Instagram</a></li>
+            <li><a href="https://www.facebook.com/profile.php?id=100090937053452&locale=es_LA" target="_blank" rel="noopener noreferrer" className="group flex min-h-12 items-center gap-3 rounded-xl bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:text-[#1D4A74] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]"><FaFacebook aria-hidden="true" className="text-xl text-blue-700" />Facebook</a></li>
+          </ul>
+        </div>
+      </Reveal>
     </section>
   );
 }

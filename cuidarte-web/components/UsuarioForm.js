@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useId, useState } from 'react';
+import AdminAuthContext from '@/components/AdminAuthContext';
 
 const ROLES = [
+  { value: 'superadmin', label: 'Superadministrador' },
   { value: 'admin', label: 'Administrador' },
   { value: 'profesional', label: 'Profesional' },
   { value: 'cliente', label: 'Cliente' },
@@ -20,10 +22,17 @@ function Field({ label, children }) {
 }
 
 function RoleHint({ rol }) {
+  if (rol === 'superadmin') {
+    return (
+      <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+        Esta cuenta tiene permisos reservados para operaciones sensibles.
+      </div>
+    );
+  }
   if (rol === 'admin') {
     return (
       <div className="rounded-xl bg-[#1D4A74]/10 border border-[#1D4A74]/30 px-4 py-3 text-sm text-[#1D4A74]">
-        Este usuario tendrá <strong>acceso total</strong> al sistema.
+        Este usuario podrá realizar operaciones administrativas habituales; no podrá eliminar permanentemente registros ni gestionar roles privilegiados.
       </div>
     );
   }
@@ -48,6 +57,8 @@ function RoleHint({ rol }) {
 }
 
 export default function UsuarioForm({ initialData, onSubmit, onCancel }) {
+  const { isSuperadmin, registerUnsavedForm } = useContext(AdminAuthContext);
+  const formId = useId();
   const [form, setForm] = useState({
     nombre: '',
     email: '',
@@ -55,6 +66,12 @@ export default function UsuarioForm({ initialData, onSubmit, onCancel }) {
     rol: 'cliente',
     activo: true,
   });
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    registerUnsavedForm(formId, dirty);
+    return () => registerUnsavedForm(formId, false);
+  }, [dirty, formId, registerUnsavedForm]);
 
   useEffect(() => {
     if (initialData) {
@@ -66,16 +83,22 @@ export default function UsuarioForm({ initialData, onSubmit, onCancel }) {
         activo: initialData.activo ?? true,
       });
     }
+    setDirty(false);
   }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
+    setDirty(true);
+  };
+
+  const requestCancel = () => {
+    if (dirty && !window.confirm('Hay cambios sin guardar. ¿Querés cerrar el formulario?')) return;
+    onCancel();
   };
 
   const submit = (e) => {
     e.preventDefault();
-    console.log('SUBMIT USUARIO:', form);
     onSubmit(form);
   };
 
@@ -140,7 +163,13 @@ export default function UsuarioForm({ initialData, onSubmit, onCancel }) {
           onChange={handleChange}
           className={inputBase}
         >
-          {ROLES.map(r => (
+          {ROLES.filter((r) => {
+            if (isSuperadmin) return true;
+            if (['admin', 'superadmin'].includes(initialData?.rol)) {
+              return r.value === initialData.rol;
+            }
+            return ['profesional', 'cliente'].includes(r.value);
+          }).map(r => (
             <option key={r.value} value={r.value}>
               {r.label}
             </option>
@@ -165,7 +194,7 @@ export default function UsuarioForm({ initialData, onSubmit, onCancel }) {
       <div className="flex justify-end gap-3 pt-6 border-t">
         <button
           type="button"
-          onClick={onCancel}
+          onClick={requestCancel}
           className="
             px-5 py-2.5 rounded-xl
             border border-gray-300

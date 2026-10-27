@@ -1,247 +1,241 @@
 // cuidarte-web/app/page.js
 "use client";
-import { Montserrat, Open_Sans } from "next/font/google";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { MotionConfig, motion, useAnimation, useReducedMotion } from "framer-motion";
 import Servicios from "../components/Servicios";
 import WhyCuidarte from "../components/WhyCuidarte";
 import ProfesionalesGrid from "../components/ProfesionalesGrid";
 import ContactSection from "../components/ContactSection";
 import TestimonialsSection from "../components/TestimonialsSection";
 import AnimatedFooter from "../components/AnimatedFooter";
-import AnimateSection from "../components/AnimateSection";
-import { fadeUp, fadeLeft, fadeRight, scaleIn } from "../components/animations";
 import Link from "next/link";
 
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-});
-const openSans = Open_Sans({ subsets: ["latin"], weight: ["400", "600"] });
+const NAV_LINKS = [
+  ["Servicios", "#servicios"],
+  ["Profesionales", "#profesionales"],
+  ["Por qué Cuidarte", "#whyCuidarte"],
+  ["Contacto", "#contacto"],
+  ["Testimonios", "#testimonios"],
+];
 
 export default function Page() {
-  const videoRef = useRef(null);
-  const heroRef = useRef(null);
-  const [videoError, setVideoError] = useState(false);
-  const [showNavbar, setShowNavbar] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState(null);
+  const prefersReducedMotion = useReducedMotion();
+  const heroControls = useAnimation();
+  const heroImageControls = useAnimation();
+  const ambientControls = useAnimation();
+  const menuButtonRef = useRef(null);
+  const headerRef = useRef(null);
+  const mobileNavRef = useRef(null);
 
-  //Funcion cuando el mouse está en el borde superior para navbar
   useEffect(() => {
-    const ACTIVATION_ZONE = 80;
-    const handleMouseMove = (e) => {
-      if (e.clientY <= ACTIVATION_ZONE) {
-        setShowNavbar(true);
-      } else {
-        setShowNavbar(false);
+    if (!menuOpen) return undefined;
+    mobileNavRef.current?.querySelector("a")?.focus();
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
       }
     };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
 
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+  useEffect(() => {
+    const sections = NAV_LINKS
+      .map(([, href]) => document.getElementById(href.slice(1)))
+      .filter(Boolean);
+    if (!sections.length) return undefined;
+
+    let frame = 0;
+    const updateActiveSection = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const atPageEnd =
+          window.scrollY + window.innerHeight >=
+          document.documentElement.scrollHeight - 2;
+        if (atPageEnd) {
+          setActiveSection(sections[sections.length - 1].id);
+          return;
+        }
+
+        const activationLine = (headerRef.current?.getBoundingClientRect().bottom || 0) + 24;
+        const current = sections.find((section) => {
+          const rect = section.getBoundingClientRect();
+          return rect.top <= activationLine && rect.bottom > activationLine;
+        });
+        const previous = sections
+          .filter((section) => section.getBoundingClientRect().top <= activationLine)
+          .at(-1);
+        setActiveSection((current || previous)?.id || null);
+      });
+    };
+
+    const observer = typeof IntersectionObserver === "undefined"
+      ? null
+      : new IntersectionObserver(updateActiveSection, {
+          rootMargin: "-80px 0px -60% 0px",
+          threshold: 0,
+        });
+    sections.forEach((section) => observer?.observe(section));
+    window.addEventListener("scroll", updateActiveSection, { passive: true });
+    window.addEventListener("resize", updateActiveSection);
+    updateActiveSection();
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("scroll", updateActiveSection);
+      window.removeEventListener("resize", updateActiveSection);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const video = videoRef.current;
-        if (!video) return;
-
-        if (entry.isIntersecting) {
-          video.play().catch(() => {});
-        } else {
-          video.pause();
-        }
-      },
-      { threshold: 0.4 }
-    );
-
-    if (heroRef.current) {
-      observer.observe(heroRef.current);
+    if (prefersReducedMotion) {
+      heroControls.set("visible");
+      heroImageControls.set("visible");
+      ambientControls.set("rest");
+    } else {
+      heroControls.set("hidden");
+      heroImageControls.set("hidden");
+      const frame = requestAnimationFrame(() => {
+        heroControls.start("visible");
+        heroImageControls.start("visible");
+        ambientControls.start("float");
+      });
+      return () => {
+        cancelAnimationFrame(frame);
+        heroControls.stop();
+        heroImageControls.stop();
+        ambientControls.stop();
+      };
     }
 
-    return () => observer.disconnect();
-  }, []);
+    return () => {
+      heroControls.stop();
+      heroImageControls.stop();
+      ambientControls.stop();
+    };
+  }, [ambientControls, heroControls, heroImageControls, prefersReducedMotion]);
 
   return (
-    <main
-      className={`min-h-screen bg-[#1D4A74] text-white ${openSans.className} overflow-y-scroll h-screen scroll-smooth`}
-    >
-      {/* NAVBAR */}
-      <header
-        className={`fixed top-0 left-0 w-full z-50 transition-transform duration-300
-    ${showNavbar ? "translate-y-0" : "-translate-y-full"}
-    bg-[#1D4A74]/90 backdrop-blur border-b border-white/30`}
-      >
-        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/"
-              className="bg-white rounded-full cursor-pointer transition-all duration-200 ease-out
-              hover:scale-105
-              hover:ring-white/70 hover:ring-emerald-400/60
-              hover:shadow-[0_0_12px_rgba(255,255,255,0.4)]
-              active:scale-95
-              active:ring-2 active:ring-emerald-500
-              active:shadow-[0_0_16px_rgba(16,185,129,0.6)]
-              will-change-transform"
-            >
-              <Image
-                src="/nuevologoSinFondo.png" // Ruta desde public/
-                alt="Cuidarte - Atención médica en casa"
-                width={400} // Ancho real de tu logo
-                height={100} // Alto real de tu logo
-                className="h-22 w-auto px-1 py-1" // Mantiene proporción
-                priority // Prioridad de carga
-              />
-            </Link>
-          </div>
-          <nav className="hidden md:flex items-center gap-6 text-lg">
-            <a href="#servicios" className="hover:text-[#04BF8A]">
-              Nuestros servicios
-            </a>
-            <a href="#whyCuidarte" className="hover:text-[#04BF8A]">
-              ¿Por qué Cuidarte?
-            </a>
-            <a href="#precios" className="hover:text-[#04BF8A]">
-              Planes y precios
-            </a>
-            <a href="#testimonios" className="hover:text-[#04BF8A]">
-              Testimonios
-            </a>
-            <a href="#contacto" className="hover:text-[#04BF8A]">
-              Contacto
-            </a>
+    <MotionConfig reducedMotion="user">
+    <main className="min-h-screen scroll-smooth bg-[#F8FAF9] text-[#1D4A74]">
+      <header ref={headerRef} className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <Link href="/" aria-label="Cuidarte, inicio" className="shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]">
+            <Image src="/nuevologoSinFondo.png" alt="Cuidarte" width={240} height={72} priority className="h-12 w-auto object-contain sm:h-14" />
+          </Link>
+
+          <nav aria-label="Navegación principal" className="hidden items-center gap-4 lg:flex">
+            {NAV_LINKS.map(([label, href]) => {
+              const active = activeSection === href.slice(1);
+              return <a key={href} href={href} aria-current={active ? "location" : undefined} className={`rounded-md border-b-2 px-1 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A] ${active ? "border-[#04BF8A] text-[#1D4A74]" : "border-transparent text-slate-700 hover:border-emerald-300 hover:text-emerald-700"}`}>{label}</a>;
+            })}
+            <Link href="/login" className="rounded-xl bg-[#1D4A74] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#163a5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A] focus-visible:ring-offset-2">Iniciar sesión</Link>
           </nav>
-          <div className="flex items-center gap-3">
-            <a
-              href="/login"
-              className="text-sm px-4 py-2 rounded-xl border border-white hover:bg-white hover:text-[#1D4A74] transition"
-            >
-              Iniciar sesión
-            </a>
-          </div>
+
+          <button ref={menuButtonRef} type="button" className="grid h-11 w-11 place-items-center rounded-xl border border-slate-300 text-[#1D4A74] transition-colors hover:bg-slate-50 active:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A] lg:hidden" aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"} aria-expanded={menuOpen} aria-controls="mobile-navigation" onClick={() => setMenuOpen((open) => !open)}>
+            <span aria-hidden="true" className="text-xl">{menuOpen ? "×" : "☰"}</span>
+          </button>
         </div>
+        {menuOpen && (
+          <nav ref={mobileNavRef} id="mobile-navigation" aria-label="Navegación móvil" className="border-t border-slate-200 bg-white px-4 py-3 lg:hidden">
+            <ul className="mx-auto grid max-w-7xl gap-1 sm:grid-cols-2">
+              {NAV_LINKS.map(([label, href]) => {
+                const active = activeSection === href.slice(1);
+                return <li key={href}><a href={href} aria-current={active ? "location" : undefined} onClick={() => setMenuOpen(false)} className={`block rounded-lg border-l-4 px-3 py-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A] ${active ? "border-[#04BF8A] bg-emerald-50 text-[#1D4A74]" : "border-transparent text-slate-700 hover:bg-slate-50"}`}>{label}{active && <span className="sr-only">, sección actual</span>}</a></li>;
+              })}
+              <li className="sm:col-span-2"><Link href="/login" onClick={() => setMenuOpen(false)} className="mt-2 block rounded-xl bg-[#1D4A74] px-4 py-3 text-center font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]">Iniciar sesión</Link></li>
+            </ul>
+          </nav>
+        )}
       </header>
 
-      {/* HERO */}
-      <AnimateSection variant={fadeUp}>
-        <section
-          ref={heroRef}
-          className="relative flex items-center"
-          style={{ height: "100vh" }}
-        >
-          <div className="mx-auto max-w-7xl px-4 h-full grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1
-                className={`text-4xl md:text-5xl font-semibold leading-tight text-[#04BF8A] ${montserrat.className}`}
-              >
-                <span className="text-white">CUIDADO INTEGRAL</span>
-                <span className="block text-[#04BF8A]">
-                  en la comodidad de tu hogar...
-                </span>
-              </h1>
-              <p className="mt-5 text-lg text-white">
-                <strong className="text-[#04bf8a]">Cuidarte</strong> conecta
-                pacientes con{" "}
-                <strong className="text-[#04bf8a]">
-                  terapeutas, cuidadores y profesionales de la salud
-                </strong>{" "}
-                para atención personalizada a domicilio. Desde acompañamiento
-                terapéutico hasta rehabilitación física.
-              </p>
-              <div className="mt-8 flex items-center gap-3">
-                <a
-                  href="#contacto"
-                  className="px-5 py-3 rounded-xl bg-[#04BF8A] text-white shadow hover:bg-[#00A884]"
-                >
-                  Ver más..
-                </a>
-                <a
-                  href="https://wa.link/v2l67z"
-                  target="_blank"
-                  className="px-5 py-3 rounded-xl border border-white hover:bg-white hover:text-[#1D4A74] transition"
-                >
-                  Hablar con un asesor..
-                </a>
-              </div>
-              <div className="mt-6 text-xs text-white/80">
-                Solicita tu asesoramiento • Sin cargo
-              </div>
-            </div>
-            <div className="relative">
-              <div className="relative max-h-[80vh] h-[420px] md:h-[560px] rounded-2xl overflow-hidden shadow-xl border border-white/20 bg-white">
-                {!videoError ? (
-                  <>
-                    <video
-                      ref={videoRef}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      src="/video_cuidarte.mp4"
-                      type="video/mp4"
-                      autoPlay
-                      loop
-                      playsInline
-                      muted
-                      onError={() => setVideoError(true)}
-                    />
+      <section className="overflow-hidden bg-white">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1fr_0.95fr] lg:gap-16 lg:px-8 lg:py-20">
+          <motion.div
+            className="max-w-2xl"
+            initial={false}
+            animate={heroControls}
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: prefersReducedMotion ? 0 : 0.12 } },
+            }}
+          >
+            <motion.p
+              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700"
+            >
+              Cuidado cercano, en casa
+            </motion.p>
+            <motion.h1
+              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-4 text-4xl font-semibold leading-[1.08] tracking-tight text-[#1D4A74] sm:text-5xl lg:text-6xl"
+            >Atención integral en la comodidad de tu hogar.</motion.h1>
+            <motion.p
+              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8"
+            >Cuidarte conecta pacientes con terapeutas, cuidadores y profesionales de la salud para una atención personalizada a domicilio.</motion.p>
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-8 flex flex-col gap-3 min-[420px]:flex-row"
+            >
+              <a href="#servicios" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#04BF8A] px-5 py-3 font-semibold text-[#103d38] transition-[transform,background-color,box-shadow] duration-200 motion-safe:hover:-translate-y-0.5 hover:bg-[#00A884] hover:shadow-md active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1D4A74] focus-visible:ring-offset-2">Conocer servicios</a>
+              <a href="https://wa.link/v2l67z" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#1D4A74]/25 px-5 py-3 font-semibold text-[#1D4A74] transition-[transform,background-color,box-shadow] duration-200 motion-safe:hover:-translate-y-0.5 hover:bg-[#1D4A74]/5 hover:shadow-sm active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]">Hablar con un asesor</a>
+            </motion.div>
+            <motion.p
+              variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
+              transition={{ duration: 0.4 }}
+              className="mt-4 text-sm text-slate-500"
+            >Solicitá asesoramiento sin cargo.</motion.p>
+          </motion.div>
 
-                    <div className="absolute inset-0 bg-black/20" />
-
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-                      <Image
-                        src="/nuevologoSinFondo.png"
-                        alt="cuidarTE"
-                        width={300}
-                        height={100}
-                        className="w-36 sm:w-40 md:w-128 h-auto"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <Image
-                      src="/logo_png-cuidarte.png"
-                      alt="cuidarTE"
-                      width={600}
-                      height={200}
-                      className="w-48 h-auto"
-                    />
-                  </div>
-                )}
+          <motion.div
+            className="relative mx-auto w-full max-w-xl lg:max-w-none"
+            initial={false}
+            animate={heroImageControls}
+            variants={{
+              hidden: { opacity: 0, scale: 0.985, y: 10 },
+              visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.7, delay: prefersReducedMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] } },
+            }}
+          >
+            <div className="relative aspect-[4/3] overflow-hidden rounded-[1.75rem] bg-slate-100 shadow-xl shadow-[#1D4A74]/10">
+              <Image src="/cuidado2.jpg" alt="Acompañamiento de cuidado en el hogar" fill priority sizes="(max-width: 1024px) 100vw, 48vw" className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#102c45]/55 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/50 bg-white/95 p-4 shadow-lg sm:bottom-6 sm:left-6 sm:right-auto sm:max-w-sm sm:p-5">
+                <p className="text-sm font-semibold text-[#1D4A74]">Cuidar también es acompañar</p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">Un equipo interdisciplinario, cerca de cada familia.</p>
               </div>
             </div>
-          </div>
-        </section>
-      </AnimateSection>
-
-      {/* SERVICIOS */}
-      <AnimateSection variant={fadeLeft}>
-        <section id="servicios" className="bg-[#04BF8A]">
-          <Servicios />
-        </section>
-      </AnimateSection>
-
-      {/* Profesionales */}
-      <AnimateSection variant={fadeRight}>
-        <ProfesionalesGrid />
-      </AnimateSection>
-
-      {/* Porque Cuidarte */}
-      <AnimateSection variant={scaleIn}>
-        <WhyCuidarte />
-      </AnimateSection>
-
-      {/* Contacto y redes */}
-      <section id="contacto" className="bg-[#1D4A74]">
-        <ContactSection />
+            <motion.div
+              aria-hidden="true"
+              className="absolute -right-6 -top-6 -z-10 h-32 w-32 rounded-full bg-[#04BF8A]/15 blur-2xl"
+              initial={false}
+              animate={ambientControls}
+              variants={{
+                rest: { y: 0 },
+                float: { y: [0, -4, 0], transition: { duration: 7, repeat: Infinity, ease: "easeInOut" } },
+              }}
+            />
+          </motion.div>
+        </div>
       </section>
 
-      {/* TESTIMONIOS */}
-      <section id="testimonios" className="bg-[#1D4A74]">
-        <TestimonialsSection />
-      </section>
-
-      {/* FOOTER */}
+      <Servicios />
+      <ProfesionalesGrid />
+      <WhyCuidarte />
+      <ContactSection />
+      <TestimonialsSection />
       <AnimatedFooter />
     </main>
+    </MotionConfig>
   );
 }

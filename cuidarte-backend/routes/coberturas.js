@@ -4,15 +4,17 @@ const Cobertura = require("../models/Cobertura");
 const auth = require("../middleware/auth");
 const requireRole = require("../middleware/requireRole");
 const recalcularCobertura = require("../utils/recalcularCobertura");
+const mongoose = require("mongoose");
 
 /**
  * GET /api/coberturas
  * Listar coberturas
  */
-router.get("/", auth, async (_req, res) => {
+router.get("/", auth, requireRole("admin"), async (_req, res) => {
   const items = await Cobertura.find()
     .populate({
       path: "servicio",
+      select: "estado cliente tipoServicio",
       populate: [
         { path: "cliente", select: "nombreApellido" },
         { path: "tipoServicio", select: "nombre color" },
@@ -29,7 +31,7 @@ router.get("/", auth, async (_req, res) => {
  * PUT /api/coberturas/:id
  * Actualizar estado de cobertura
  */
-router.put("/:id", auth, async (req, res) => {
+router.put("/:id", auth, requireRole("admin"), async (req, res) => {
   try {
     const { estado, motivo } = req.body;
 
@@ -151,6 +153,26 @@ router.delete(
     }
   }
 );
+
+router.delete("/:id/permanent", auth, requireRole("admin"), async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: "Identificador de cobertura inválido" });
+    }
+    const cobertura = await Cobertura.findById(req.params.id);
+    if (!cobertura) return res.status(404).json({ error: "Cobertura no encontrada" });
+    if (cobertura.pagos.length) {
+      return res.status(409).json({ error: "No se puede eliminar: la cobertura conserva pagos y auditoría" });
+    }
+    if (Number(cobertura.totalServicio) > 0 || Number(cobertura.totalPagado) > 0) {
+      return res.status(409).json({ error: "No se puede eliminar: la cobertura conserva importes financieros. Resolvé el saldo antes de eliminarla" });
+    }
+    await Cobertura.deleteOne({ _id: cobertura._id });
+    res.json({ ok: true });
+  } catch (_error) {
+    res.status(400).json({ error: "No se pudo eliminar la cobertura" });
+  }
+});
 
 
 module.exports = router;

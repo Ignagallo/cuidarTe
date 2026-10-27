@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import ServicioFormModal from "./ServicioFormModal";
 import ActionMenu from "@/components/ActionMenu";
+import DeletePermanentlyButton from "@/components/DeletePermanentlyButton";
 
 export default function ServiciosAdminPage() {
   const [servicios, setServicios] = useState([]);
@@ -14,6 +15,7 @@ export default function ServiciosAdminPage() {
   const [profesionales, setProfesionales] = useState([]);
 
   const [search, setSearch] = useState("");
+  const [estadoFilter, setEstadoFilter] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [tiposServicio, setTiposServicio] = useState([]);
@@ -25,19 +27,15 @@ export default function ServiciosAdminPage() {
       const data = await apiFetch("/api/servicios");
       setServicios(Array.isArray(data) ? data : []);
       setErr("");
+      return true;
     } catch (e) {
       setErr(e.message);
       setServicios([]);
+      return false;
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    load();
-    loadAux();
-    loadTiposServicio();
-  }, []);
 
   const loadAux = async () => {
     const [c, p] = await Promise.all([
@@ -61,13 +59,14 @@ export default function ServiciosAdminPage() {
   /* ================= FILTRO ================= */
   const filtered = useMemo(() => {
     return servicios.filter((s) =>
+      (estadoFilter === "todos" || s.estado === estadoFilter) &&
       `${s.tipoServicio?.nombre}
        ${s.cliente?.nombreApellido}
        ${s.profesional?.nombreApellido}`
         .toLowerCase()
         .includes(search.toLowerCase()),
     );
-  }, [servicios, search]);
+  }, [servicios, search, estadoFilter]);
 
   /* ================= CRUD ================= */
   const save = async (data) => {
@@ -115,20 +114,28 @@ export default function ServiciosAdminPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold text-[#1D4A74]">Servicios</h1>
         {/* BUSCADOR */}
-        <input
-          placeholder="Buscar por cliente, profesional o tipo de servicio…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="
-          w-full sm:max-w-xl
-          px-4 py-2.5 rounded-xl
-          border border-gray-300
-          text-[#1D4A74]
-          focus:outline-none
-          focus:ring-2 focus:ring-[#04BF8A]
-          focus:border-[#04BF8A]
-        "
-        />
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+          <input
+            placeholder="Buscar por cliente, profesional o tipo de servicio…"
+            aria-label="Buscar servicios"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full min-h-11 px-4 py-2.5 rounded-xl border border-gray-300 text-[#1D4A74] focus:outline-none focus:ring-2 focus:ring-[#04BF8A] focus:border-[#04BF8A]"
+          />
+          <label className="sr-only" htmlFor="filtro-estado-servicio">Filtrar servicios por estado</label>
+          <select
+            id="filtro-estado-servicio"
+            value={estadoFilter}
+            onChange={(e) => setEstadoFilter(e.target.value)}
+            className="min-h-11 rounded-xl border border-gray-300 bg-white px-3 py-2 text-[#1D4A74] focus:outline-none focus:ring-2 focus:ring-[#04BF8A]"
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="activo">Activo</option>
+            <option value="pausado">Pausado</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
         <button
           onClick={() => {
             setEditing(null);
@@ -150,6 +157,8 @@ export default function ServiciosAdminPage() {
 
       {err && <p className="text-red-600">{err}</p>}
       {loading && <p className="text-gray-500">Cargando servicios…</p>}
+      {!loading && <p className="text-sm text-slate-500">Mostrando {filtered.length} de {servicios.length} servicios</p>}
+      {!loading && servicios.length > 0 && filtered.length === 0 && <p className="rounded-xl border border-slate-200 bg-white p-4 text-slate-600">No hay servicios que coincidan con estos filtros.</p>}
 
       {/* ================= TABLA DESKTOP ================= */}
       <div className="hidden md:block bg-white rounded-2xl shadow-lg border border-gray-100 overflow-x-auto">
@@ -187,6 +196,7 @@ export default function ServiciosAdminPage() {
                   <EstadoBadge estado={s.estado} />
                 </Td>
                 <td className="px-4 py-2 text-right">
+                  <div className="inline-flex items-center gap-2">
                   <ActionMenu
                     actions={[
                       {
@@ -207,6 +217,8 @@ export default function ServiciosAdminPage() {
                       },
                     ]}
                   />
+                  <DeletePermanentlyButton label="Eliminar definitivamente" recordLabel={`${s.tipoServicio?.nombre || "Servicio"} — ${s.cliente?.nombreApellido || "sin cliente"}`} endpoint={`/api/servicios/${s._id}/permanent`} onDeleted={load} />
+                  </div>
                 </td>
               </tr>
             ))}
@@ -299,6 +311,7 @@ export default function ServiciosAdminPage() {
               >
                 ⛔ Cancelar
               </button>
+              <DeletePermanentlyButton label="Eliminar definitivamente" recordLabel={`${s.tipoServicio?.nombre || "Servicio"} — ${s.cliente?.nombreApellido || "sin cliente"}`} endpoint={`/api/servicios/${s._id}/permanent`} onDeleted={load} />
             </div>
           </div>
         ))}

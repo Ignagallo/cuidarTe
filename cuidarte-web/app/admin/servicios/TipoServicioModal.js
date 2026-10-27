@@ -1,8 +1,11 @@
 //app/admin/servicios/TipoServicioModal.js
 "use client";
 
-import { useState, useEffect } from "react";
+import { useContext, useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
+import Modal from "@/components/Modal";
+import FormField from "@/components/FormField";
+import AdminAuthContext from "@/components/AdminAuthContext";
 
 const inputBase = `
   w-full px-4 py-2.5 rounded-xl
@@ -23,6 +26,7 @@ export default function TipoServicioModal({
   onUpdated,
   initialData,
 }) {
+  const { registerUnsavedForm } = useContext(AdminAuthContext);
   const editMode = !!initialData;
 
   const [nombre, setNombre] = useState("");
@@ -30,6 +34,12 @@ export default function TipoServicioModal({
   const [color, setColor] = useState("#1D4A74");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    registerUnsavedForm("tipo-servicio-form", open && dirty);
+    return () => registerUnsavedForm("tipo-servicio-form", false);
+  }, [dirty, open, registerUnsavedForm]);
 
   useEffect(() => {
     if (!open) return;
@@ -46,9 +56,15 @@ export default function TipoServicioModal({
 
     setError("");
     setLoading(false);
+    setDirty(false);
   }, [open, editMode, initialData]);
 
   if (!open) return null;
+
+  const requestClose = () => {
+    if (dirty && !confirm("Hay cambios sin guardar. ¿Querés cerrar el formulario?")) return;
+    onClose();
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -78,6 +94,7 @@ export default function TipoServicioModal({
       });
 
       editMode ? onUpdated(result) : onCreated(result);
+      setDirty(false);
       onClose();
     } catch (e) {
       if (e.message?.includes("duplicate")) {
@@ -91,68 +108,23 @@ export default function TipoServicioModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm grid place-items-center">
-      <div className="w-[95vw] max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-[fadeIn_0.2s_ease-out]">
-        {/* HEADER */}
-        <div className="px-6 py-4 border-b flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-semibold text-[#1D4A74]">
-              {editMode ? "Editar tipo de servicio" : "Nuevo tipo de servicio"}
-            </h3>
-            <p className="text-xs text-gray-500">
-              Categoría reutilizable para servicios
-            </p>
-          </div>
+    <Modal title={editMode ? "Editar tipo de servicio" : "Nuevo tipo de servicio"} onClose={requestClose} size="max-w-lg" zIndexClass="z-[60]" bodyClassName="min-h-0 overflow-y-auto p-0">
+        <form onSubmit={submit} className="space-y-5 p-4 sm:p-6">
+          <p className="text-sm text-slate-600">Categoría reutilizable para servicios</p>
+          <FormField label="Nombre del tipo" htmlFor="tipo-servicio-nombre" required>
+            <input id="tipo-servicio-nombre" className={inputBase} placeholder="Ej: Enfermería, Acompañamiento…" value={nombre} onChange={(e) => { setNombre(e.target.value); setDirty(true); }} required />
+          </FormField>
 
-          <button
-            onClick={onClose}
-            className="text-gray-400 text-xl hover:text-gray-700 transition"
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* BODY */}
-        <form onSubmit={submit} className="p-6 space-y-5">
-          <div>
-            <label className="text-sm font-medium text-gray-700">
-              Nombre del tipo
-            </label>
-            <input
-              className={inputBase}
-              placeholder="Ej: Enfermería, Acompañamiento…"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700">
-              Color identificador
-            </label>
-            <div className="flex items-center gap-4 mt-2">
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-10 w-14 cursor-pointer rounded-lg border"
-              />
+          <FormField label="Color identificador" htmlFor="tipo-servicio-color">
+            <div className="mt-2 flex items-center gap-4">
+              <input id="tipo-servicio-color" type="color" value={color} onChange={(e) => { setColor(e.target.value); setDirty(true); }} className="h-11 w-14 cursor-pointer rounded-lg border" />
               <span className="text-sm text-gray-600">{color}</span>
             </div>
-          </div>
+          </FormField>
 
-          <div>
-            <label className="text-sm font-medium text-gray-700">
-              Descripción
-            </label>
-            <textarea
-              className={`${inputBase} min-h-[90px]`}
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-            />
-          </div>
+          <FormField label="Descripción" htmlFor="tipo-servicio-descripcion">
+            <textarea id="tipo-servicio-descripcion" className={`${inputBase} min-h-[90px]`} value={descripcion} onChange={(e) => { setDescripcion(e.target.value); setDirty(true); }} />
+          </FormField>
 
           {error && (
             <div className="px-4 py-2 rounded-lg bg-red-50 text-red-700 text-sm">
@@ -161,11 +133,11 @@ export default function TipoServicioModal({
           )}
 
           {/* FOOTER */}
-          <div className="pt-4 border-t flex justify-end gap-3">
+          <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t bg-white pt-4 sm:flex-row sm:justify-end">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border bg-gray-50 hover:bg-gray-100"
+              onClick={requestClose}
+              className="min-h-11 rounded-xl border bg-gray-50 px-4 py-2.5 hover:bg-gray-100"
             >
               Cancelar
             </button>
@@ -173,7 +145,7 @@ export default function TipoServicioModal({
             <button
               type="submit"
               disabled={loading}
-              className={`px-5 py-2.5 rounded-xl text-white font-medium transition ${
+              className={`min-h-11 rounded-xl px-5 py-2.5 font-medium text-white transition ${
                 loading
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-[#1D4A74] hover:bg-[#163a5c]"
@@ -183,7 +155,6 @@ export default function TipoServicioModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

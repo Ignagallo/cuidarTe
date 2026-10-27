@@ -1,16 +1,24 @@
 "use client";
 
-import React, { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import EstadoCoberturaBadge from "./EstadoCoberturaBadge";
+import AdminAuthContext from "@/components/AdminAuthContext";
 
 export default function GestionPagosModal({ cobertura, onClose, onUpdated }) {
+  const { registerUnsavedForm } = useContext(AdminAuthContext);
   const [monto, setMonto] = useState("");
   const [nota, setNota] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [data, setData] = useState(cobertura);
   const [processingPagoId, setProcessingPagoId] = useState(null);
+  const hasUnsavedPayment = Boolean(monto || nota);
+
+  useEffect(() => {
+    registerUnsavedForm("gestion-pago-form", hasUnsavedPayment);
+    return () => registerUnsavedForm("gestion-pago-form", false);
+  }, [hasUnsavedPayment, registerUnsavedForm]);
 
   const estadoColor = {
     impago: "text-red-600",
@@ -156,55 +164,53 @@ export default function GestionPagosModal({ cobertura, onClose, onUpdated }) {
               </tr>
             </thead>
             <tbody>
-              {React.Children.toArray(
-                data.pagos.length > 0
-                  ? data.pagos.map((p) => (
-                      <tr
-                        key={p._id}
-                        className={`border-t transition text-center text-[#1D4A74] hover:bg-gray-50 ${
-                          p.anulado ? "opacity-50 line-through" : ""
-                        }`}
-                      >
-                        <td className="p-2 text-left">
-                          {new Date(p.fecha).toLocaleDateString()}
-                        </td>
-                        <td className="p-2 text-center">${p.monto}</td>
-                        <td className="p-2">{p.nota || "-"}</td>
-                        <td className="p-2">{p.admin?.nombre ?? "Admin"}</td>
-                        <td className="p-2 text-center">
-                          {!p.anulado && (
-                            <span>
-                              <button
-                                disabled={processingPagoId === p._id}
-                                onClick={() => editarPago(p._id)}
-                                className="px-2 cursor-pointer text-blue-600 hover:text-blue-800 transition disabled:opacity-40"
-                              >
-                                ✏️
-                              </button>
+              {data.pagos.length > 0
+                ? data.pagos.map((p) => (
+                    <tr
+                      key={`pago-${p._id.toString()}`}
+                      className={`border-t transition text-center text-[#1D4A74] hover:bg-gray-50 ${
+                        p.anulado ? "opacity-50 line-through" : ""
+                      }`}
+                    >
+                      <td className="p-2 text-left">
+                        {new Date(p.fecha).toLocaleDateString()}
+                      </td>
+                      <td className="p-2 text-center">${p.monto}</td>
+                      <td className="p-2">{p.nota || "-"}</td>
+                      <td className="p-2">{p.admin?.nombre ?? "Admin"}</td>
+                      <td className="p-2 text-center">
+                        {!p.anulado && (
+                          <span>
+                            <button
+                              disabled={processingPagoId === p._id}
+                              onClick={() => editarPago(p._id)}
+                              className="px-2 cursor-pointer text-blue-600 hover:text-blue-800 transition disabled:opacity-40"
+                            >
+                              ✏️
+                            </button>
 
-                              <button
-                                disabled={processingPagoId === p._id}
-                                onClick={() => anularPago(p._id)}
-                                className="px-2 cursor-pointer text-red-600 hover:text-red-800 transition disabled:opacity-40"
-                              >
-                                ❌
-                              </button>
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  : [
-                      <tr key="no-pagos">
-                        <td
-                          colSpan={5}
-                          className="p-4 text-center text-gray-500"
-                        >
-                          No hay pagos registrados
-                        </td>
-                      </tr>,
-                    ],
-              )}
+                            <button
+                              disabled={processingPagoId === p._id}
+                              onClick={() => anularPago(p._id)}
+                              className="px-2 cursor-pointer text-red-600 hover:text-red-800 transition disabled:opacity-40"
+                            >
+                              ❌
+                            </button>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                : (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="p-4 text-center text-gray-500"
+                      >
+                        No hay pagos registrados
+                      </td>
+                    </tr>
+                  )}
             </tbody>
           </table>
         </div>
