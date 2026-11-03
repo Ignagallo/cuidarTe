@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const Servicio = require("../models/Servicio");
 const auth = require("../middleware/auth");
+const requireRole = require("../middleware/requireRole");
 const Cobertura = require("../models/Cobertura");
 
 function generarDias(servicio, start, end) {
@@ -24,7 +25,7 @@ function generarDias(servicio, start, end) {
 }
 
 // dentro del loop de servicios
-router.get("/", async (req, res) => {
+router.get("/", auth, requireRole("admin"), async (req, res) => {
   const cobertura = await Cobertura.findOne();
   res.json(cobertura);
 });

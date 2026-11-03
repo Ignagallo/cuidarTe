@@ -1,6 +1,6 @@
 // models/Usuario.js
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const { hashPassword, comparePassword } = require("../utils/password");
 
 const usuarioSchema = new mongoose.Schema(
   {
@@ -18,7 +18,7 @@ const usuarioSchema = new mongoose.Schema(
 
     rol: {
       type: String,
-      enum: ["admin", "profesional", "cliente"],
+      enum: ["superadmin", "admin", "profesional", "cliente"],
       default: "cliente",
     },
 
@@ -37,6 +37,11 @@ const usuarioSchema = new mongoose.Schema(
 
     activo: { type: Boolean, default: true },
 
+    tokenVersion: { type: Number, default: 0 },
+
+    passwordResetTokenHash: { type: String, select: false },
+    passwordResetExpiresAt: { type: Date, select: false },
+
     requiereCambioPassword: {
       type: Boolean,
       default: true,
@@ -48,13 +53,12 @@ const usuarioSchema = new mongoose.Schema(
 // Hash password
 usuarioSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  this.password = await hashPassword(this.password);
   next();
 });
 
 usuarioSchema.methods.compararPassword = function (password) {
-  return bcrypt.compare(password, this.password);
+  return comparePassword(password, this.password);
 };
 
 module.exports = mongoose.model("Usuario", usuarioSchema);

@@ -1,9 +1,11 @@
 // app/admin/servicios/ServicioFormModal.js
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import TipoServicioModal from "./TipoServicioModal";
 import { apiFetch } from "@/lib/api";
+import Modal from "@/components/Modal";
+import AdminAuthContext from "@/components/AdminAuthContext";
 
 const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
@@ -31,6 +33,7 @@ export default function ServicioFormModal({
   onTipoServicioUpdated,
   onTipoServicioDeleted,
 }) {
+  const { registerUnsavedForm } = useContext(AdminAuthContext);
   const editMode = !!initialData;
   const [importe, setImporte] = useState(0);
   const [form, setForm] = useState({
@@ -50,6 +53,12 @@ export default function ServicioFormModal({
 
   const [indefinido, setIndefinido] = useState(false);
   const [err, setErr] = useState("");
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    registerUnsavedForm("servicio-form", open && dirty);
+    return () => registerUnsavedForm("servicio-form", false);
+  }, [dirty, open, registerUnsavedForm]);
 
   /* ================= MODAL TIPO SERVICIO ================= */
   const [showTipoModal, setShowTipoModal] = useState(false);
@@ -135,17 +144,28 @@ export default function ServicioFormModal({
     }
 
     setErr("");
+    setDirty(false);
     setQueryCliente("");
     setQueryProfesional("");
   }, [open, initialData]);
 
   const toggleDia = (i) => {
-    setForm((prev) => ({
+    updateForm((prev) => ({
       ...prev,
       diasSemana: prev.diasSemana.includes(i)
         ? prev.diasSemana.filter((d) => d !== i)
         : [...prev.diasSemana, i],
     }));
+  };
+
+  const updateForm = (updater) => {
+    setForm(updater);
+    setDirty(true);
+  };
+
+  const requestClose = () => {
+    if (dirty && !confirm("Hay cambios sin guardar. ¿Querés cerrar el formulario?")) return;
+    onClose();
   };
 
   const submit = async (e) => {
@@ -188,6 +208,7 @@ export default function ServicioFormModal({
         fechaFin: indefinido ? null : form.fechaFin,
         importe: Number(importe) || 0
       });
+      setDirty(false);
       onClose();
     } catch (e) {
       setErr(e.message);
@@ -197,24 +218,8 @@ export default function ServicioFormModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
-      <div className="bg-white w-[95vw] max-w-3xl rounded-2xl shadow-2xl max-h-[90vh] flex flex-col animate-[fadeIn_0.2s_ease-out]">
-        {/* ================= HEADER ================= */}
-        <div className="flex justify-between items-center px-6 py-4 border-b">
-          <h2 className="text-xl font-semibold text-[#1D4A74]">
-            {editMode ? "Editar servicio" : "Nuevo servicio"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 text-xl"
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* ================= BODY ================= */}
-        <form onSubmit={submit} className="p-6 space-y-6 overflow-y-auto">
+    <Modal title={editMode ? "Editar servicio" : "Nuevo servicio"} onClose={requestClose} size="max-w-3xl" bodyClassName="min-h-0 overflow-y-auto p-0">
+        <form onSubmit={submit} className="space-y-6 p-4 sm:p-6">
           {/* CLIENTE / PROFESIONAL */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* CLIENTE */}
@@ -233,7 +238,7 @@ export default function ServicioFormModal({
                 }
                 onChange={(e) => {
                   setQueryCliente(e.target.value);
-                  setForm({ ...form, cliente: "" });
+                  updateForm((current) => ({ ...current, cliente: "" }));
                   setShowClientes(true);
                 }}
                 onFocus={() => setShowClientes(true)}
@@ -253,7 +258,7 @@ export default function ServicioFormModal({
                       type="button"
                       key={c._id}
                       onClick={() => {
-                        setForm({ ...form, cliente: c._id });
+                        updateForm((current) => ({ ...current, cliente: c._id }));
                         setQueryCliente("");
                         setShowClientes(false);
                       }}
@@ -282,7 +287,7 @@ export default function ServicioFormModal({
                 }
                 onChange={(e) => {
                   setQueryProfesional(e.target.value);
-                  setForm({ ...form, profesional: "" });
+                  updateForm((current) => ({ ...current, profesional: "" }));
                   setShowProfesionales(true);
                 }}
                 onFocus={() => setShowProfesionales(true)}
@@ -302,7 +307,7 @@ export default function ServicioFormModal({
                       type="button"
                       key={p._id}
                       onClick={() => {
-                        setForm({ ...form, profesional: p._id });
+                        updateForm((current) => ({ ...current, profesional: p._id }));
                         setQueryProfesional("");
                         setShowProfesionales(false);
                       }}
@@ -340,7 +345,7 @@ export default function ServicioFormModal({
                     }
                     onChange={(e) => {
                       setQueryTipo(e.target.value);
-                      setForm({ ...form, tipoServicio: "" });
+                      updateForm((current) => ({ ...current, tipoServicio: "" }));
                       setShowTipos(true);
                     }}
                     onFocus={() => setShowTipos(true)}
@@ -391,7 +396,7 @@ export default function ServicioFormModal({
                         <button
                           type="button"
                           onClick={() => {
-                            setForm({ ...form, tipoServicio: t._id });
+                            updateForm((current) => ({ ...current, tipoServicio: t._id }));
                             setQueryTipo("");
                             setShowTipos(false);
                           }}
@@ -449,7 +454,7 @@ export default function ServicioFormModal({
               <select
                 className={inputBase}
                 value={form.estado}
-                onChange={(e) => setForm({ ...form, estado: e.target.value })}
+                onChange={(e) => updateForm((current) => ({ ...current, estado: e.target.value }))}
               >
                 <option value="activo">Activo</option>
                 <option value="pausado">Pausado</option>
@@ -471,7 +476,7 @@ export default function ServicioFormModal({
                 className={inputBase}
                 value={form.fechaInicio}
                 onChange={(e) =>
-                  setForm({ ...form, fechaInicio: e.target.value })
+                  updateForm((current) => ({ ...current, fechaInicio: e.target.value }))
                 }
               />
 
@@ -481,7 +486,7 @@ export default function ServicioFormModal({
                   className={inputBase}
                   value={form.fechaFin}
                   onChange={(e) =>
-                    setForm({ ...form, fechaFin: e.target.value })
+                    updateForm((current) => ({ ...current, fechaFin: e.target.value }))
                   }
                 />
               )}
@@ -491,7 +496,7 @@ export default function ServicioFormModal({
                 className={inputBase}
                 value={form.horaInicio}
                 onChange={(e) =>
-                  setForm({ ...form, horaInicio: e.target.value })
+                  updateForm((current) => ({ ...current, horaInicio: e.target.value }))
                 }
               />
 
@@ -499,7 +504,7 @@ export default function ServicioFormModal({
                 type="time"
                 className={inputBase}
                 value={form.horaFin}
-                onChange={(e) => setForm({ ...form, horaFin: e.target.value })}
+                onChange={(e) => updateForm((current) => ({ ...current, horaFin: e.target.value }))}
               />
             </div>
 
@@ -507,7 +512,7 @@ export default function ServicioFormModal({
               <input
                 type="checkbox"
                 checked={indefinido}
-                onChange={(e) => setIndefinido(e.target.checked)}
+                onChange={(e) => { setIndefinido(e.target.checked); setDirty(true); }}
               />
               Servicio sin fecha de finalización
             </label>
@@ -545,7 +550,7 @@ export default function ServicioFormModal({
               min="0"
               step="1"
               value={importe}
-              onChange={(e) => setImporte(e.target.value)}
+              onChange={(e) => { setImporte(e.target.value); setDirty(true); }}
               className={inputBase} 
               placeholder="0"
             />
@@ -556,7 +561,7 @@ export default function ServicioFormModal({
             className={`${inputBase} min-h-[90px]`}
             placeholder="Indicaciones adicionales para el profesional…"
             value={form.indicaciones}
-            onChange={(e) => setForm({ ...form, indicaciones: e.target.value })}
+            onChange={(e) => updateForm((current) => ({ ...current, indicaciones: e.target.value }))}
           />
 
           {/* OBSERVACIONES INTERNAS */}
@@ -565,28 +570,25 @@ export default function ServicioFormModal({
             placeholder="Observaciones internas (solo administración)…"
             value={form.observacionesInternas}
             onChange={(e) =>
-              setForm({
-                ...form,
-                observacionesInternas: e.target.value,
-              })
+              updateForm((current) => ({ ...current, observacionesInternas: e.target.value }))
             }
           />
 
           {err && <p className="text-red-600 text-sm">{err}</p>}
 
           {/* FOOTER */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-slate-200 bg-white pt-4 sm:flex-row sm:justify-end">
             <button
               type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 transition"
+              onClick={requestClose}
+              className="min-h-11 rounded-xl border border-gray-300 bg-gray-50 px-5 py-2.5 text-gray-700 hover:bg-gray-100 transition"
             >
               Cancelar
             </button>
 
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-[#1D4A74] text-white font-medium shadow-md hover:bg-[#163a5c] hover:shadow-lg active:scale-[0.98] transition"
+              className="min-h-11 rounded-xl bg-[#1D4A74] px-5 py-2.5 font-medium text-white shadow-md hover:bg-[#163a5c] hover:shadow-lg active:scale-[0.98] transition"
             >
               {editMode ? "Guardar cambios" : "Crear servicio"}
             </button>
@@ -601,14 +603,13 @@ export default function ServicioFormModal({
           }}
           onCreated={(nuevo) => {
             onTipoServicioCreated?.(nuevo);
-            setForm((f) => ({ ...f, tipoServicio: nuevo._id }));
+            updateForm((f) => ({ ...f, tipoServicio: nuevo._id }));
           }}
           onUpdated={(actualizado) => {
             onTipoServicioUpdated?.(actualizado);
-            setForm((f) => ({ ...f, tipoServicio: actualizado._id }));
+            updateForm((f) => ({ ...f, tipoServicio: actualizado._id }));
           }}
         />
-      </div>
-    </div>
+    </Modal>
   );
 }

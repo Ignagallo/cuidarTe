@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiAssetUrl, apiFetch } from "@/lib/api";
 import ProfesionalModal from "./ProfesionalModal";
+import DeletePermanentlyButton from "@/components/DeletePermanentlyButton";
 
 export default function ProfesionalesPage() {
   const [list, setList] = useState([]);
@@ -11,7 +12,13 @@ export default function ProfesionalesPage() {
   const [editing, setEditing] = useState(null);
 
   const load = async () => {
-    setList(await apiFetch("/api/profesionales"));
+    try {
+      setList(await apiFetch("/api/profesionales"));
+      return true;
+    } catch (error) {
+      console.error("Error cargando profesionales:", error);
+      return false;
+    }
   };
 
   useEffect(() => {
@@ -112,6 +119,7 @@ export default function ProfesionalesPage() {
                     >
                       Desactivar
                     </button>
+                    <DeletePermanentlyButton label="Eliminar definitivamente" recordLabel={p.nombreApellido} endpoint={`/api/profesionales/${p._id}/permanent`} onDeleted={load} />
                   </td>
                 </tr>
               ))}
@@ -149,7 +157,7 @@ export default function ProfesionalesPage() {
             >
               {p.fotoUrl ? (
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API_BASE}${p.fotoUrl}`}
+                  src={apiAssetUrl(p.fotoUrl)}
                   alt={p.nombreApellido}
                   className="h-16 w-16 rounded-xl object-cover"
                 />
@@ -179,6 +187,7 @@ export default function ProfesionalesPage() {
                 >
                   Desactivar
                 </button>
+                <DeletePermanentlyButton label="Eliminar definitivamente" recordLabel={p.nombreApellido} endpoint={`/api/profesionales/${p._id}/permanent`} onDeleted={load} />
               </div>
             </div>
           ))}

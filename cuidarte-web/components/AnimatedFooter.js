@@ -1,9 +1,10 @@
 import Image from "next/image";
+import Reveal from "./Reveal";
 
 export default function AnimatedFooter() {
   return (
     <footer className="bg-[#1D4A74] text-white mt-16">
-      <div className="mx-auto max-w-7xl px-6 py-14 grid gap-12 md:grid-cols-3 items-start">
+      <Reveal className="mx-auto max-w-7xl px-6 py-14 grid gap-12 md:grid-cols-3 items-start">
         {/* LOGO */}
         <div className="flex items-center justify-center h-full">
           <Image
@@ -20,17 +21,17 @@ export default function AnimatedFooter() {
           <h4 className="text-lg font-semibold mb-4">Legal</h4>
           <ul className="space-y-3 text-sm">
             <li>
-              <a href="#" className="hover:text-[#04BF8A]">
+              <a href="#" className="transition-colors hover:text-[#04BF8A]">
                 Términos y condiciones
               </a>
             </li>
             <li>
-              <a href="#" className="hover:text-[#04BF8A]">
+              <a href="#" className="transition-colors hover:text-[#04BF8A]">
                 Política de privacidad
               </a>
             </li>
             <li>
-              <a href="#" className="hover:text-[#04BF8A]">
+              <a href="#contacto" className="transition-colors hover:text-[#04BF8A]">
                 Contacto
               </a>
             </li>
@@ -39,7 +40,7 @@ export default function AnimatedFooter() {
                 href="https://www.linkedin.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-[#04BF8A]"
+                className="transition-colors hover:text-[#04BF8A]"
               >
                 Trabajar con nosotros
               </a>
@@ -51,22 +52,22 @@ export default function AnimatedFooter() {
         <div>
           <h4 className="text-lg font-semibold mb-4">Seguinos</h4>
           <div className="flex gap-5">
-            <a href="https://www.instagram.com/cuidarte.lr/" target="_blank">
+            <a href="https://www.instagram.com/cuidarte.lr/" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Cuidarte">
               <Image
                 src="/instagram.png"
                 alt="Instagram de Cuidarte"
                 width={100}
                 height={100}
-                className="h-8 w-8 hover:scale-115 transition h-20 w-auto shrink-0 object-contain"
+                className="h-10 w-10 shrink-0 object-contain transition motion-safe:hover:scale-105"
               />
             </a>
-            <a href="https://www.facebook.com/profile.php?id=100090937053452&locale=es_LA" target="_blank">
+            <a href="https://www.facebook.com/profile.php?id=100090937053452&locale=es_LA" target="_blank" rel="noopener noreferrer" aria-label="Facebook de Cuidarte">
               <Image
                 src="/facebook.png"
                 alt="Facebook de Cuidarte"
                 width={100}
                 height={100}
-                className="h-8 w-8 hover:scale-115 transition h-20 w-auto shrink-0 object-contain"
+                className="h-10 w-10 shrink-0 object-contain transition motion-safe:hover:scale-105"
               />
             </a>
             {/*
@@ -80,18 +81,18 @@ export default function AnimatedFooter() {
               />
             </a>
             */}
-            <a href="mailto:contacto@cuidartelr.com.ar">
+            <a href="mailto:contacto@cuidartelr.com.ar" aria-label="Escribir a Cuidarte por email">
               <Image
                 src="/gmail.png"
                 alt="Correo de Cuidarte"
                 width={100}
                 height={100}
-                className="h-8 w-8 hover:scale-115 transition h-20 w-auto shrink-0 object-contain"
+                className="h-10 w-10 shrink-0 object-contain transition motion-safe:hover:scale-105"
               />
             </a>
           </div>
         </div>
-      </div>
+      </Reveal>
 
       {/* FIRMAS */}
       <div className="border-t border-white/20">
@@ -99,13 +100,13 @@ export default function AnimatedFooter() {
           <span>
             Creado por:{" "}
             <span className="font-bold">
-              <a href="www.gallosolutions.com">Gallo Solutions</a>
+              <a href="https://www.gallosolutions.com">Gallo Solutions</a>
             </span>
           </span>
           <span>
             Desarrollo:{" "}
             <span className="font-bold">
-              <a href="www.gallosolutions.com">Gallo Solutions</a>
+              <a href="https://www.gallosolutions.com">Gallo Solutions</a>
             </span>
           </span>
           <span>

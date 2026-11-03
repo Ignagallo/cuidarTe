@@ -42,13 +42,24 @@ export default function AdminDashboard() {
   const [viewType, setViewType] = useState("dayGridMonth");
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+  const fetchResumen = useCallback(async (start, end) => {
+    try {
+      const data = await apiFetch(
+        `/api/agenda/resumen?start=${start}&end=${end}`,
+      );
+      setResumenPorDia(data || {});
+    } catch {
+      setResumenPorDia({});
+    }
+  }, []);
   
   useEffect(() => {
     if (viewType === "timeGridDay") {
       const fecha = activeDate.toISOString().slice(0, 10);
       fetchResumen(fecha, fecha);
     }
-  }, [activeDate, viewType]);
+  }, [activeDate, fetchResumen, viewType]);
 
   useEffect(() => {
     const today = new Date();
@@ -61,19 +72,8 @@ export default function AdminDashboard() {
       .slice(0, 10);
 
     fetchResumen(start, end);
-  }, []);
+  }, [fetchResumen]);
   /* ================= FETCH ================= */
-  const fetchResumen = useCallback(async (start, end) => {
-    try {
-      const data = await apiFetch(
-        `/api/agenda/resumen?start=${start}&end=${end}`,
-      );
-      setResumenPorDia(data || {});
-    } catch {
-      setResumenPorDia({});
-    }
-  }, []);
-
   const fetchServiciosDelDia = async (fecha) => {
     try {
       const data = await apiFetch(`/api/agenda/dia?fecha=${fecha}`);

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import Modal from "@/components/Modal";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,6 +16,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  const [confirmLanding, setConfirmLanding] = useState(false);
+
+  const handleLogoClick = (event) => {
+    if (!email.trim() && !password) return;
+    event.preventDefault();
+    setConfirmLanding(true);
+  };
 
   const onLogin = async (e) => {
     e.preventDefault();
@@ -27,15 +36,13 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      console.log("LOGIN RESPONSE:", data);
-
       if (data.requiereCambioPassword) {
         router.replace("/cambiar-password");
         return;
       }
 
       const rol = data?.rol || "cliente";
-      if (rol === "admin") router.replace("/admin");
+      if (rol === "admin" || rol === "superadmin") router.replace("/admin");
       else router.replace("/panel");
     } catch (e) {
       setErr(e.message);
@@ -56,10 +63,8 @@ export default function LoginPage() {
         body: JSON.stringify({ email }),
       });
 
-      if (!resp.ok) throw new Error("No se pudo procesar la solicitud");
-
       setMsg(
-        "Si el email existe en el sistema, recibirás instrucciones para restablecer tu contraseña.",
+        resp.message || "Solicitud recibida. Revisá tu correo si la cuenta está activa.",
       );
     } catch (e) {
       setErr(e.message);
@@ -73,7 +78,12 @@ export default function LoginPage() {
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 animate-fade-in">
         {/* COLUMNA IZQUIERDA – SOLO DESKTOP */}
         <div className="hidden md:flex flex-col justify-center items-center bg-[#1D4A74] text-white p-10 space-y-6">
-          <div className="h-60 w-60 rounded-full bg-white shadow-lg flex items-center justify-center overflow-hidden">
+          <Link
+            href="/"
+            onClick={handleLogoClick}
+            aria-label="Volver a la página principal de Cuidarte"
+            className="h-60 w-60 rounded-full bg-white shadow-lg flex items-center justify-center overflow-hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#04BF8A]"
+          >
             <Image
               src="/nuevologoSinFondo.png"
               alt="Logo cuidarTE"
@@ -82,7 +92,7 @@ export default function LoginPage() {
               className="object-contain"
               priority
             />
-          </div>
+          </Link>
 
           <div className="text-center space-y-3">
             <h2 className="text-2xl font-semibold">
@@ -100,6 +110,14 @@ export default function LoginPage() {
           onSubmit={mode === "login" ? onLogin : onForgotPassword}
           className="p-8 md:p-10 space-y-6 flex flex-col justify-center animate-slide-in"
         >
+          <Link
+            href="/"
+            onClick={handleLogoClick}
+            aria-label="Volver a la página principal de Cuidarte"
+            className="mx-auto grid h-16 w-40 place-items-center rounded-xl bg-white md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]"
+          >
+            <Image src="/nuevologoSinFondo.png" alt="Cuidarte" width={160} height={48} className="h-12 w-auto object-contain" />
+          </Link>
           <div className="text-center space-y-1">
             <h1 className="text-2xl font-bold text-[#1D4A74]">
               {mode === "login" ? "Iniciar sesión" : "Recuperar contraseña"}
@@ -107,7 +125,7 @@ export default function LoginPage() {
             <p className="text-sm text-gray-500">
               {mode === "login"
                 ? "Ingresá tus credenciales para continuar"
-                : "Ingresá tu email y te enviaremos instrucciones"}
+                : "Ingresá el email asociado a tu cuenta"}
             </p>
           </div>
 
@@ -169,6 +187,18 @@ export default function LoginPage() {
           </div>
         </form>
       </div>
+
+      {confirmLanding && (
+        <Modal title="¿Salir del inicio de sesión?" onClose={() => setConfirmLanding(false)} size="max-w-md">
+          <div className="space-y-4">
+            <p className="text-sm leading-6 text-slate-600">Hay datos ingresados que todavía no se enviaron. Si volvés a la página principal, se perderán.</p>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setConfirmLanding(false)} className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]">Seguir aquí</button>
+              <button type="button" onClick={() => router.push("/")} className="min-h-11 rounded-xl bg-[#1D4A74] px-4 py-2 font-medium text-white hover:bg-[#163a5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]">Volver a la página principal</button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Animaciones simples */}
       <style jsx>{`

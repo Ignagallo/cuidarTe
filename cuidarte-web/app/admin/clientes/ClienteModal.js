@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
-const API = process.env.NEXT_PUBLIC_API_BASE;
+import { useContext, useEffect, useState } from 'react';
+import Modal from '@/components/Modal';
+import FormField from '@/components/FormField';
+import { apiFetch } from '@/lib/api';
+import AdminAuthContext from '@/components/AdminAuthContext';
 
 const initialForm = {
   nombreApellido: '',
@@ -14,9 +16,16 @@ const initialForm = {
 };
 
 export default function ClienteModal({ editing, onClose, onSaved }) {
+  const { registerUnsavedForm } = useContext(AdminAuthContext);
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    registerUnsavedForm('cliente-form', dirty);
+    return () => registerUnsavedForm('cliente-form', false);
+  }, [dirty, registerUnsavedForm]);
 
   useEffect(() => {
     if (editing) {
@@ -31,35 +40,34 @@ export default function ClienteModal({ editing, onClose, onSaved }) {
           : '',
       });
     } else {
-      setForm(initialForm);
+      setForm({ ...initialForm });
     }
+    setDirty(false);
+    setError('');
   }, [editing]);
+
+  const requestClose = () => {
+    if (dirty && !confirm('Hay cambios sin guardar. ¿Querés cerrar el formulario?')) return;
+    onClose();
+  };
+
+  const update = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setDirty(true);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const url = editing
-      ? `${API}/api/clientes/${editing._id}`
-      : `${API}/api/clientes`;
-
-    const method = editing ? 'PUT' : 'POST';
-
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(form),
+      await apiFetch(editing ? `/api/clientes/${editing._id}` : '/api/clientes', {
+        method: editing ? 'PUT' : 'POST',
+        body: JSON.stringify({ ...form, fechaNacimiento: new Date(form.fechaNacimiento).toISOString() }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data?.error || 'Error al guardar cliente');
-      }
-
-      onSaved();
+      setDirty(false);
+      await onSaved?.();
       onClose();
     } catch (e) {
       setError(e.message);
@@ -69,94 +77,38 @@ export default function ClienteModal({ editing, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
-      <form
-        onSubmit={submit}
-        className="bg-white rounded-xl p-6 w-full max-w-md space-y-4 shadow-xl animate-[fadeIn_0.15s_ease-out]"
-      >
-        <h2 className="text-xl font-semibold text-[#1D4A74]">
-          {editing ? 'Editar cliente' : 'Nuevo cliente'}
-        </h2>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-2 rounded">
-            {error}
-          </div>
-        )}
-
-        <input
-          placeholder="Nombre y apellido"
-          className="w-full border p-2 rounded text-black"
-          value={form.nombreApellido}
-          onChange={(e) =>
-            setForm({ ...form, nombreApellido: e.target.value })
-          }
-          required
-        />
-
-        <input
-          placeholder="DNI"
-          className="w-full border p-2 rounded text-black"
-          value={form.dni}
-          onChange={(e) => setForm({ ...form, dni: e.target.value })}
-          required
-        />
-
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full border p-2 rounded text-black"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-          required
-        />
-
-        <input
-          placeholder="Teléfono"
-          className="w-full border p-2 rounded text-black"
-          value={form.telefono}
-          onChange={(e) =>
-            setForm({ ...form, telefono: e.target.value })
-          }
-          required
-        />
-
-        <input
-          placeholder="Dirección"
-          className="w-full border p-2 rounded text-black"
-          value={form.direccion}
-          onChange={(e) =>
-            setForm({ ...form, direccion: e.target.value })
-          }
-          required
-        />
-
-        <input
-          type="date"
-          className="w-full border p-2 rounded text-black"
-          value={form.fechaNacimiento}
-          onChange={(e) =>
-            setForm({ ...form, fechaNacimiento: e.target.value })
-          }
-          required
-        />
-
-        <div className="flex justify-end gap-2 pt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded border bg-red-500 hover:bg-red-900 transition"
-          >
-            Cancelar
-          </button>
-          <button
-            disabled={loading}
-            className="bg-[#1D4A74] text-white px-4 py-2 rounded hover:bg-[#163a5c] transition disabled:opacity-50"
-          >
-            {loading ? 'Guardando…' : 'Guardar'}
+    <Modal title={editing ? 'Editar cliente' : 'Nuevo cliente'} onClose={requestClose} bodyClassName="min-h-0 overflow-y-auto p-0" size="max-w-2xl">
+      <form onSubmit={submit} className="flex min-h-0 flex-col">
+        <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-6">
+          {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800 sm:col-span-2">{error}</p>}
+          <FormField label="Nombre y apellido" htmlFor="cliente-nombre" required>
+            <input id="cliente-nombre" autoComplete="name" className={inputClass} value={form.nombreApellido} onChange={(e) => update('nombreApellido', e.target.value)} required />
+          </FormField>
+          <FormField label="DNI" htmlFor="cliente-dni" required>
+            <input id="cliente-dni" inputMode="numeric" className={inputClass} value={form.dni} onChange={(e) => update('dni', e.target.value)} required />
+          </FormField>
+          <FormField label="Email" htmlFor="cliente-email" required>
+            <input id="cliente-email" type="email" autoComplete="email" className={inputClass} value={form.email} onChange={(e) => update('email', e.target.value)} required />
+          </FormField>
+          <FormField label="Teléfono" htmlFor="cliente-telefono" required>
+            <input id="cliente-telefono" type="tel" autoComplete="tel" className={inputClass} value={form.telefono} onChange={(e) => update('telefono', e.target.value)} required />
+          </FormField>
+          <FormField label="Dirección" htmlFor="cliente-direccion" required className="sm:col-span-2">
+            <input id="cliente-direccion" autoComplete="street-address" className={inputClass} value={form.direccion} onChange={(e) => update('direccion', e.target.value)} required />
+          </FormField>
+          <FormField label="Fecha de nacimiento" htmlFor="cliente-fecha" required>
+            <input id="cliente-fecha" type="date" className={inputClass} value={form.fechaNacimiento} onChange={(e) => update('fechaNacimiento', e.target.value)} required />
+          </FormField>
+        </div>
+        <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-slate-200 bg-white p-4 sm:flex-row sm:justify-end sm:px-6">
+          <button type="button" onClick={requestClose} className="min-h-11 rounded-xl border border-slate-300 px-5 py-2.5 font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]">Cancelar</button>
+          <button type="submit" disabled={loading} className="min-h-11 rounded-xl bg-[#1D4A74] px-5 py-2.5 font-medium text-white hover:bg-[#163a5c] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A] focus-visible:ring-offset-2">
+            {loading ? 'Guardando…' : 'Guardar cliente'}
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }
+
+const inputClass = "min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-[#1D4A74] outline-none focus-visible:ring-2 focus-visible:ring-[#04BF8A]";

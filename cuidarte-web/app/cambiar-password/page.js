@@ -35,7 +35,7 @@ export default function CambiarPasswordPage() {
       setOk(true);
 
       setTimeout(() => {
-        router.replace("/panel");
+        router.replace("/login");
       }, 900);
     } catch (e) {
       setErr(e.message);

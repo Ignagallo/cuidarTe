@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import Modal from "@/components/Modal";
 import UsuarioForm from "@/components/UsuarioForm";
 import AsignarPerfilModal from "@/components/AsignarPerfilModal";
 import ActionMenu from "@/components/ActionMenu";
+import DeletePermanentlyButton from "@/components/DeletePermanentlyButton";
+import AdminAuthContext from "@/components/AdminAuthContext";
 
 export default function UsuariosAdminPage() {
+  const { isSuperadmin } = useContext(AdminAuthContext);
   const [users, setUsers] = useState([]);
   const [err, setErr] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -22,10 +25,12 @@ export default function UsuariosAdminPage() {
       const data = await apiFetch("/api/usuarios");
       setUsers(Array.isArray(data) ? data : []);
       setErr("");
+      return true;
     } catch (e) {
       console.error("Error cargando usuarios:", e);
       setErr(e.message);
       setUsers([]);
+      return false;
     }
   };
 
@@ -91,6 +96,30 @@ export default function UsuariosAdminPage() {
     } catch (e) {
       alert(e.message);
     }
+  };
+
+  const actionsFor = (user) => {
+    const canManageAccount = isSuperadmin || !["admin", "superadmin"].includes(user.rol);
+    return [
+      ...(canManageAccount ? [{
+        label: "Editar",
+        icon: "✏️",
+        className: "bg-blue-100 text-blue-700 hover:bg-blue-200",
+        onClick: () => openEdit(user),
+      }] : []),
+      ...(canManageAccount ? [{
+        label: "Desactivar",
+        icon: "⛔",
+        className: "bg-red-100 text-red-700 hover:bg-red-200",
+        onClick: () => desactivar(user._id),
+      }] : []),
+      ...(canManageAccount ? [{
+        label: "Resetear contraseña",
+        icon: "🔑",
+        className: "bg-orange-100 text-orange-700 hover:bg-orange-200",
+        onClick: () => resetPassword(user),
+      }] : []),
+    ];
   };
 
   const filteredUsers = users
@@ -213,30 +242,10 @@ export default function UsuariosAdminPage() {
                   <PerfilCell user={u} onAsignar={() => openAsignarPerfil(u)} />
                 </td>
                 <td className="px-4 py-2 text-right">
-                  <ActionMenu
-                    actions={[
-                      {
-                        label: "Editar",
-                        icon: "✏️",
-                        className:
-                          "bg-blue-100 text-blue-700 hover:bg-blue-200",
-                        onClick: () => openEdit(u),
-                      },
-                      {
-                        label: "Desactivar",
-                        icon: "⛔",
-                        className: "bg-red-100 text-red-700 hover:bg-red-200",
-                        onClick: () => desactivar(u._id),
-                      },
-                      {
-                        label: "Resetear contraseña",
-                        icon: "🔑",
-                        className:
-                          "bg-orange-100 text-orange-700 hover:bg-orange-200",
-                        onClick: () => resetPassword(u),
-                      },
-                    ]}
-                  />
+                  <div className="inline-flex items-center gap-2">
+                  {actionsFor(u).length > 0 && <ActionMenu actions={actionsFor(u)} />}
+                  <DeletePermanentlyButton label="Eliminar definitivamente" recordLabel={`${u.nombre} (${u.email})`} endpoint={`/api/usuarios/${u._id}/permanent`} onDeleted={load} />
+                  </div>
                 </td>
               </tr>
             ))}
@@ -278,7 +287,7 @@ export default function UsuariosAdminPage() {
 
             {/* FOOTER – ACCIONES */}
             <div className="flex flex-wrap gap-2 pt-2 border-t">
-              <button
+              {actionsFor(u).some((action) => action.label === "Editar") && <button
                 onClick={() => openEdit(u)}
                 className="
             flex-1 px-2 rounded-lg
@@ -289,9 +298,9 @@ export default function UsuariosAdminPage() {
           "
               >
                 ✏️ Editar
-              </button>
+              </button>}
 
-              {u.activo && (
+              {u.activo && actionsFor(u).some((action) => action.label === "Desactivar") && (
                 <button
                   onClick={() => desactivar(u._id)}
                   className="flex-1 px-2 rounded-lg bg-red-100 text-red-700 font-medium active:scale-[0.97] hover:bg-red-200 transition"
@@ -300,12 +309,13 @@ export default function UsuariosAdminPage() {
                 </button>
               )}
 
-              <button
+              {actionsFor(u).some((action) => action.label === "Resetear contraseña") && <button
                 onClick={() => resetPassword(u)}
                 className="flex-1 px-2 rounded-lg font-medium bg-orange-100 text-orange-700 hover:bg-orange-200 active:scale-[0.97] transition"
               >
                 🔑 Resetear contraseña
-              </button>
+              </button>}
+              <DeletePermanentlyButton label="Eliminar definitivamente" recordLabel={`${u.nombre} (${u.email})`} endpoint={`/api/usuarios/${u._id}/permanent`} onDeleted={load} />
             </div>
           </div>
         ))}
@@ -315,6 +325,8 @@ export default function UsuariosAdminPage() {
         <Modal
           title={editing ? "Editar usuario" : "Nuevo usuario"}
           onClose={() => setModalOpen(false)}
+          closeOnEscape={false}
+          showCloseButton={false}
         >
           <UsuarioForm
             initialData={editing}
@@ -336,7 +348,7 @@ export default function UsuariosAdminPage() {
 function PerfilCell({ user, onAsignar }) {
   if (!user) return null;
 
-  if (user.rol === "admin") {
+  if (user.rol === "admin" || user.rol === "superadmin") {
     return <span className="text-gray-400">—</span>;
   }
 

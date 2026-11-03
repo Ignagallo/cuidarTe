@@ -1,161 +1,83 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import Image from "next/image";
-import { Montserrat } from "next/font/google";
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-});
-
-/**
- * MOCK – luego viene del backend
- */
-const PROFESIONALES = [
-  {
-    id: 1,
-    nombre: "Agustina Arias Bracamonte",
-    especialidad: "Enfermería domiciliaria",
-    descripcion:
-      "Enfermera domiciliaria con un enfoque integral hacia sus pacientes",
-    fotoUrl: "/enf1.jpg",
-  },
-  {
-    id: 2,
-    nombre: "Juan Pérez",
-    especialidad: "Kinesiología",
-    descripcion: "Rehabilitación física personalizada en domicilio.",
-    fotoUrl: "/analisis-clinico3.jpg",
-  },
-  {
-    id: 3,
-    nombre: "Laura Fernández",
-    especialidad: "Terapia ocupacional",
-    descripcion: "Especialista en adultos mayores y salud mental.",
-    fotoUrl: "/cuidado1.jpg",
-  },
-  {
-    id: 4,
-    nombre: "Carlos Díaz",
-    especialidad: "Cuidados domiciliarios",
-    descripcion: "Asistencia diaria y acompañamiento integral.",
-    fotoUrl: "/enfermeria.jpg",
-  },
-  {
-    id: 5,
-    nombre: "Ana López",
-    especialidad: "Psicología",
-    descripcion: "Atención y contención emocional en domicilio.",
-    fotoUrl: "/kinesiologo2.jpg",
-  },
-  {
-    id: 6,
-    nombre: "Sofía Martínez",
-    especialidad: "Terapia ocupacional",
-    descripcion: "Estimulación y autonomía funcional.",
-    fotoUrl: "/limpieza1.jpg",
-  },
-];
+import { useEffect, useState } from "react";
+import { apiAssetUrl, apiFetch } from "@/lib/api";
+import Reveal from "./Reveal";
 
 export default function ProfesionalesGrid() {
-  const containerRef = useRef(null);
-  const velocityRef = useRef(0);
-  const animationRef = useRef(null);
+  const [profesionales, setProfesionales] = useState([]);
+  const [failedImages, setFailedImages] = useState(() => new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const animate = () => {
-      container.scrollLeft += velocityRef.current;
-
-      const maxScroll = container.scrollWidth / 2;
-
-      if (container.scrollLeft >= maxScroll) {
-        container.scrollLeft -= maxScroll;
-      }
-
-      if (container.scrollLeft <= 0) {
-        container.scrollLeft += maxScroll;
-      }
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => cancelAnimationFrame(animationRef.current);
+    const controller = new AbortController();
+    apiFetch("/api/profesionales/publicos", { signal: controller.signal })
+      .then((data) => setProfesionales(Array.isArray(data) ? data : []))
+      .catch((requestError) => {
+        if (requestError.name !== "AbortError") setError("No pudimos cargar la información del equipo.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
   }, []);
-
-  const handleMouseMove = (e) => {
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const center = rect.width / 2;
-    const distance = x - center;
-
-    const deadZone = 80;
-
-    if (Math.abs(distance) < deadZone) {
-      velocityRef.current = 0;
-    } else {
-      velocityRef.current = distance * 0.0025;
-    }
-  };
 
   return (
     <section
       id="profesionales"
-      className="bg-[#04BF8A] text-white py-8 md:py-12"
+      className="scroll-mt-24 bg-[#F4F7F5] py-16 text-[#1D4A74] sm:py-20"
     >
-      <div className="mx-auto max-w-7xl px-4 w-full">
-        <h2
-          className={`text-2xl md:text-3xl font-semibold ${montserrat.className}`}
-        >
-          Profesionales verificados
-        </h2>
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <Reveal className="max-w-2xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-emerald-700">Nuestro equipo</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Profesionales que acompañan</h2>
+          <p className="mt-3 text-base leading-7 text-slate-600">Conocé a quienes forman parte del equipo de Cuidarte.</p>
+        </Reveal>
 
-        <div
-          ref={containerRef}
-          onMouseMove={handleMouseMove}
-          //onMouseLeave={() => (velocityRef.current = 0)}
-          className="mt-12 overflow-x-hidden"
-        >
-          <div className="flex gap-8 w-max">
-            {[...PROFESIONALES, ...PROFESIONALES].map((p, index) => (
-              <article
-                key={index}
-                className="w-[340px] bg-white rounded-2xl shadow-lg overflow-hidden
-                           text-[#1D4A74] flex-shrink-0"
-              >
-                <div className="relative h-40">
-                  <Image
-                    src={p.fotoUrl}
-                    alt={p.nombre}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+        {loading && <p role="status" className="mt-8 text-slate-600">Cargando profesionales…</p>}
+        {error && <p role="alert" className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">{error}</p>}
+        {!loading && !error && profesionales.length === 0 && (
+          <p className="mt-8 rounded-xl border border-slate-200 bg-white p-5 text-slate-600">En este momento no hay profesionales publicados.</p>
+        )}
 
-                <div className="p-4">
-                  <h3
-                    className={`font-semibold text-lg ${montserrat.className}`}
-                  >
-                    {p.nombre}
-                  </h3>
-
-                  <p className="text-sm font-medium text-[#04BF8A]">
-                    {p.especialidad}
-                  </p>
-
-                  <p className="mt-2 text-sm text-[#1D4A74]/80">
-                    {p.descripcion}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
+        {!loading && !error && profesionales.length > 0 && (
+          <ul className="mt-8 grid gap-5 sm:gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {profesionales.map((profesional, index) => {
+              const imageFailed = failedImages.has(index);
+              return (
+                <Reveal
+                  as="li"
+                  key={`${profesional.nombreApellido}-${index}`}
+                  delay={Math.min(index * 0.06, 0.3)}
+                >
+                  <article className="group h-full overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-[transform,box-shadow,border-color] duration-300 ease-out motion-safe:hover:-translate-y-1 hover:border-[#04BF8A]/40 hover:shadow-lg">
+                    <div className="relative grid aspect-[5/4] place-items-center overflow-hidden bg-slate-50 p-3 sm:aspect-[4/3]">
+                      {profesional.fotoUrl && !imageFailed ? (
+                        <img
+                          src={apiAssetUrl(profesional.fotoUrl)}
+                          alt={`Fotografía de ${profesional.nombreApellido}`}
+                          loading="lazy"
+                          decoding="async"
+                          onError={() => setFailedImages((current) => new Set(current).add(index))}
+                          className="h-full w-full object-contain transition-transform duration-500 ease-out motion-safe:group-hover:scale-[1.02]"
+                        />
+                      ) : (
+                        <span aria-hidden="true" className="grid h-20 w-20 place-items-center rounded-full bg-[#1D4A74] text-2xl font-semibold text-white">
+                          {profesional.nombreApellido?.trim()?.[0]?.toLocaleUpperCase("es") || "C"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-5">
+                      <h3 className="text-lg font-semibold text-[#1D4A74]">{profesional.nombreApellido}</h3>
+                      {profesional.profesion && <p className="mt-1 text-sm font-medium text-emerald-700">{profesional.profesion}</p>}
+                    </div>
+                  </article>
+                </Reveal>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </section>
   );
